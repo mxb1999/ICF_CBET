@@ -19,13 +19,15 @@
   //Values needed throughout simulation
   extern double maxDev;
   extern int beam;
-
+  extern int iter;
+  extern int count;
+  extern int** counter;
   //Launch Ray Values
 
 
   extern double cs;
   extern double injected;
-
+  extern int gridcount;
   extern int ray1num;
   extern double maxInc;
   //Pointers for necessary arrays
@@ -55,17 +57,19 @@
   extern double*** W_init;//nx nz
   extern double*** W_new;//nx nz
   extern double*** i_b;//nx nz
+  extern double*** i_b_prev;//nbeams nx nz 
   extern double*** i_b_new;//nx nz
   extern double** wpe; //nx nz
   extern double*** crossesz; //nbeams nrays ncrossings
   extern double*** crossesx; //nbeams nrays ncrossings
   extern int*** ints; //nbeams nrays ncrossings
+  extern int iteration;
   //arrays used only for plotting
   extern double** i_bplot;//nx nz
   extern double** orderplot1; //nx nz
   extern double** orderplot2; //nx nz
-
   extern double** i_b1Error;
+  extern double* convergeplot;
   extern double** i_b2Error;
   extern double** i_b_newplot;//nx nz
   extern double** edenplot; //the array is eden/ncrit,  nx nz

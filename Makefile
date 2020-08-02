@@ -1,12 +1,25 @@
-#Simple Makefile
-Open Terminal and type commands:
-	h5c++ -c -fopenmp -O3  -std=c++17  implSim.cpp -I./hdf5-1.12.0/c++/src -I./hdf5-1.12.0/src
-	h5c++ -c -fopenmp -O3  -std=c++17 -I./hdf5-1.12.0/c++/src -I./hdf5-1.12.0/src Initialize.cpp
-	h5c++ -c -fopenmp -O3  -std=c++17 -I./hdf5-1.12.0/c++/src -I./hdf5-1.12.0/src cbet.cpp
-	h5c++ -c -fopenmp -O3  -std=c++17 -I./hdf5-1.12.0/c++/src -I./hdf5-1.12.0/src RayLaunch.cpp
-	h5c++ -c -fopenmp -O3  -std=c++17 -I./hdf5-1.12.0/c++/src -I./hdf5-1.12.0/src Launch_Ray_XZ.cpp
-	h5c++ -c -fopenmp -O3 -std=c++17 customMath.cpp
-	h5c++ -c -fopenmp -O3  -std=c++17 -I./hdf5-1.12.0/c++/src hdf5writer.cpp
-	h5c++ -Wall -fopenmp -O3 -Werror -std=c++17 -I./hdf5-1.12.0/c++/src -I./hdf5-1.12.0/src -g -o implSim implSim.o hdf5writer.o cbet.o  customMath.o RayLaunch.o Launch_Ray_XZ.o Initialize.o
-	./implSim
-	#python3 matplotting.py
+CC=h5c++ #compiler being used
+IDIR=include
+ODIR=Bin
+LDIR=src
+vpath %.cpp  src
+vpath %.h  src/includes
+
+CFLAGS= -g -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial -Wall -Werror -fopenmp #compiler flags
+_DEPS = implSim.h declarations.h simConst.h customMath.h #.h Dependecies
+DEBS = $(patsubst %, $(IDIR)/%,$(_DEPS))
+
+LIBS = 	-lm #Library Dependecies
+_OBJ = Initialize.o cbet.o customMath.o hdf5writer.o implSim.o Launch_Ray_XZ.o RayLaunch.o
+OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+
+$(ODIR)/%.o:  $(LDIR)/%.cpp $(DEPS)
+	$(CC) -c -fopenmp -g -o $@ $^
+
+implSim: $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^  $(LIBS)
+
+.phony: clean
+
+clean:
+	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~

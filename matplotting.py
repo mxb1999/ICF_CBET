@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import *
 
 window = tk.Tk()
-implSim = h5py.File('implSim.hdf', 'r')
+implSim = h5py.File('src/Output/implSim.hdf', 'r')
 templist = list(implSim.keys())
 datalist = []
 for i in templist:
@@ -57,14 +57,21 @@ dropLabel3 = tk.Label(
     width=15,
     height=1
 )
-button = tk.Button(
-    text="Plot",
+dim2Button = tk.Button(
+    text="2DPlot",
     width=7,
     height=1,
     bg="gray",
     fg="white"
 )
-def handle_keypress(event):
+button = tk.Button(
+    text="3DPlot",
+    width=7,
+    height=1,
+    bg="gray",
+    fg="white"
+)
+def handle_keypress3D(event):
     path1 = '/'+var1.get()
     path2 = '/'+var2.get()
     path3 = '/'+var3.get()
@@ -82,7 +89,25 @@ def handle_keypress(event):
     #plt.show()
 
 
-button.bind("<Button-1>", handle_keypress)
+def handle_keypress2D(event):
+    path1 = '/'+var1.get()
+    path2 = '/'+var2.get()
+    set1 = np.array(implSim[path1][:])
+    set2 = np.array(implSim[path2][:])
+    #set1, set2 = np.meshgrid(set1, set2)
+    print ("Hello")
+    plt.plot(set1,set2)
+    plt.title(namer.get())
+    plt.xlabel(var1.get())
+    plt.ylabel(var2.get())
+    plt.show()
+    #ax.plot_surface(set1,set2,temp,cmap=cm.coolwarm,linewidth=0, antialiased=False)
+    #plt.show()
+
+
+dim2Button.bind("<Button-1>", handle_keypress2D)
+
+button.bind("<Button-1>", handle_keypress3D)
 #optionMenu.pack()
 dropLabel1.pack()
 w.pack()
@@ -92,6 +117,7 @@ dropLabel3.pack()
 y.pack()
 namer.pack()
 entryLabel.pack()
+dim2Button.pack()
 button.pack()
 
 window.mainloop()

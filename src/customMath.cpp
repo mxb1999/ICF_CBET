@@ -15,6 +15,7 @@ int binSearch(double tgt, double* in, int lIndex, int rIndex)
   int midIndex = lIndex+(rIndex-lIndex)/2;
   double mid = in[midIndex];
   /*
+  djes
   cout << lIndex << " " << midIndex << endl;
   cout << left << " " << tgt << " " << mid << endl;
   cout << endl;

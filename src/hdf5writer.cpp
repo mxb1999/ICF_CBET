@@ -1,5 +1,5 @@
 #include "include/implSim.h"
-#include <H5Cpp.h>
+#include <hdf5/serial/H5Cpp.h>
 
 
 using namespace H5;
@@ -192,24 +192,30 @@ void writeArr(void* arr, int type, H5File* store, string name, int dimnum, int* 
 void updateH5()
 {
   cout << "Started HDF5 Write" << endl;
-  std::string name = "Output/implSim.hdf";
+  std::string name = "src/Output/implSim.hdf";
   static H5File* store = new H5File(name, H5F_ACC_TRUNC);
   cout << "File Opened" << endl;
   cout << "Starting Write..." << endl;
+  int* arr = new int[20016]{0};
+  for(int i =1; i < 20017; i++)
+  {
+    arr[i-1] = i;
+  }
   writeArr(x, 0, store, "x (cm)", 1, new int[1]{nx});
   writeArr(z, 0, store, "z (cm)", 1, new int[1]{nz});
   writeArr(eden, 0, store, "eden", 2, new int[2]{nx,nz});
-  writeArr(orderplot1, 0, store, "order1", 2, new int[2]{nx,nz});
-  writeArr(orderplot2, 0, store, "order2", 2, new int[2]{nx,nz});
+  //writeArr(orderplot1, 0, store, "order1", 2, new int[2]{nx,nz});
+  //writeArr(orderplot2, 0, store, "order2", 2, new int[2]{nx,nz});
   writeArr(edenplot, 0, store, "eden_ncrit", 2, new int[2]{nx,nz});
-
+  writeArr(convergeplot, 0, store, "Intensity (ergs per cm2)", 1, new int[1]{1575});
+writeArr(arr, 1, store, "Number of Runs", 1, new int[1]{1575});
   writeArr(edepplot, 0, store, "total_intensity", 2, new int[2]{nx,nz});
   writeArr(i_b[0], 0, store, "i_b1", 2, new int[2]{nx,nz});
   writeArr(i_b[1], 0, store, "i_b2", 2, new int[2]{nx,nz});
   writeArr(i_b1Error, 0, store, "i_b1Error", 2, new int[2]{nx,nz});
   writeArr(i_b2Error, 0, store, "i_b2Error", 2, new int[2]{nx,nz});
-  writeArr(i_b_new[0], 0, store, "i_b2_new", 2, new int[2]{nx,nz});
-  writeArr(i_b_new[1], 0, store, "i_b1_new", 2, new int[2]{nx,nz});
+  writeArr(i_b_new[0], 0, store, "i_b1_new", 2, new int[2]{nx,nz});
+  writeArr(i_b_new[1], 0, store, "i_b2_new", 2, new int[2]{nx,nz});
   writeArr(i_b_newplot, 0, store, "i_b_newplot", 2, new int[2]{nx,nz});
   writeArr(i_bplot, 0, store, "i_bplot", 2, new int[2]{nx,nz});
   cout << "Write Finished" << endl;

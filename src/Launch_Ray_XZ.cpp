@@ -157,7 +157,6 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
               crossesx[beam][raynum][numcrossing] = crossz;
               if(myz[i] < (zmax+dz/2 +1e-11) && myz[i] > (zmin-dz/2-1e-11))
               {
-                cout << numcrossing << endl;
                 boxes[beam][raynum][numcrossing][0] = thisx + 1;
                 boxes[beam][raynum][numcrossing][1] = thisz + 1;
               }
