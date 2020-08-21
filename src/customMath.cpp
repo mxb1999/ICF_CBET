@@ -2,9 +2,9 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
-#include "include/customMath.h"
+#include "customMath.h"
 #include <limits>
-#include "include/implSim.h"
+#include "implSim.h"
 //implementations of custom math functions
 //binary search algorithm, searches given array in log(n) time
 

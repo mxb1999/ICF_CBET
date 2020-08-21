@@ -1,9 +1,15 @@
-#include "include/implSim.h"
-#include "include/customMath.h"
+#include "implSim.h"
+#include "customMath.h"
 using namespace std;
 //uses x0 and z0 arrays to initialize the ray positions, then launches via Launch_Ray_XZ()
 void trackRays()
 {
+
+  orderplot2 = new double*[nrays];
+  for(int i = 0; i < nrays; i++)
+  {
+    orderplot2[i] = new double[nrays]{0};
+  }
   cout << "Tracking Rays" << endl;
   //tracking arrays
   double x0[nrays];
@@ -16,7 +22,7 @@ void trackRays()
   for(int i = 0; i < nrays; i++)
   {
     kx0[i] = 1.0;
-    kz0[i] = -0.1;
+    kz0[i] = 0;
     pow_x[i] = exp(-1*pow(pow(phase_x[i]/sigma,2.0),4.0/2.0));
     phase_x[i] += offset;
   }
@@ -34,15 +40,12 @@ void trackRays()
 
   }
   beam = 0;
-  //#pragma omp parallel for num_threads(12)
+  #pragma omp parallel for num_threads(12)
   for(int i = 0; i < nrays;i++)
   {
     double interpNum = interp(phase_x, pow_x, z0[i], nrays);
-
-
     #pragma omp atomic update
     injected += uray_mult*interpNum;
-
     launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i],uray_mult*interpNum,i);
   }
   for(int i = 0; i < nrays; i++)
@@ -62,7 +65,7 @@ void trackRays()
     x0[i] -= (dx/2)+(dt/courant_mult*c*0.5);
     z0[i] = zmin-(dt/courant_mult*c*0.5);
   }
-  //#pragma omp parallel for num_threads(12)
+  #pragma omp parallel for num_threads(12)
   for(int i = 0; i < nrays;i++)
   {
     z0[i] = zmin-(dt/courant_mult*c*0.5);
@@ -93,7 +96,7 @@ void updateIntersections()
   {
     for(int j = 1; j < nz; j++)
     {
-      for(int m = 0; m < nrays; m++)
+      for(int m = 0; m < numstored; m++)
       {
         //if at least two beams are in the same x and z coordinates, update intersections
         if(marked[i*nz+j][m*nbeams+0] == 0)
@@ -101,7 +104,7 @@ void updateIntersections()
           break;
         }else
         {
-          for(int l = 0; l < nrays; l++)
+          for(int l = 0; l < numstored; l++)
           {
             if(marked[i*nz+j][l*nbeams+1] == 0)
             {
@@ -121,5 +124,4 @@ void launchRays()
 {
   trackRays();
   updateIntersections();
-
 }

@@ -1,5 +1,5 @@
-#include "include/implSim.h"
-#include "include/customMath.h"
+#include "implSim.h"
+#include "customMath.h"
 using namespace std;
 //initializing necessary arrays for the calculation
 void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, double urayinit, int raynum)
@@ -65,8 +65,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
   myvz[0] =  pow(c,2.0)*mykz[0]/omega;
   markingx[0] = thisx_0;
   markingz[0] = thisz_0;
-
-
+  //cout << myx[0] << " " << myz[0] << endl;
   //__________Time Stepping__________
     int numcrossing = 0;
     //looping through time intervals
@@ -76,10 +75,10 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
       myvx[i] = myvx[i-1] - pow(c,2.0)/(2.0*ncrit)*dedendx[thisx_0][thisz_0]*dt;
       myx[i] = myx[i-1] + myvx[i]*dt;
       myz[i] = myz[i-1] + myvz[i]*dt;
-
+    //  printf("%f %f %f %f\n", myx[i],myx[i-1], myvx[i], dt);
       int search_index_x = 1;
       int search_index_z = 1;
-      int thisx_m = fmax(0, thisx_0-search_index_x);
+      int thisx_m = fmax(0, thisx_0-search_index_x );
       int thisx_p = fmin(nx-1, thisx_0+search_index_x);
       int thisz_m = fmax(0, thisz_0-search_index_z);
       int thisz_p = fmin(nz-1, thisz_0+search_index_z);
@@ -107,6 +106,8 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
          }
       }
 
+    //  cout << thisx_0<<"  thisx_m: " << thisx_m << " thisx_p: " << thisx_p << endl;
+    //  cout << thisz_0<< " thisz_m: " << thisz_m << " thisz_p: " << thisz_p << endl;
       double linez[2]={myz[i-1], myz[i]};
       double linex[2]={myx[i-1], myx[i]};
       int lastx = 10000;
@@ -117,20 +118,26 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
       for(int j = thisx_m; j <= thisx_p;j++)
       {
         double currx = x[j]-dx/2;
-        if((myx[i] > currx && myx[i-1] < (currx + 1e-12)) || (myx[i] < currx && myx[i-1] > (currx- 1e-12)))
+
+        if((myx[i] > currx && myx[i-1] <= (currx + 1e-10)) || (myx[i] < currx && myx[i-1] >= (currx- 1e-10)))
         {
           double m = (myz[i] - myz[i-1])/(myx[i]-myx[i-1]);
           double b = myz[i] - myx[i]*m;
           double crossx = m*currx+b;
           if(abs(crossx-lastz)>1.0e-20)
           {
+
             ints[beam][raynum][numcrossing]=uray[i];
             crossesx[beam][raynum][numcrossing] = currx;
             crossesz[beam][raynum][numcrossing] = crossx;
-            if(myx[i] < (xmax+dx/2 + 1e-11) && myx[i] > (xmin-dx/2 - 1e-12))
+      //      cout << beam << " " << raynum << " " << numcrossing << " " << thisx_p << endl;
+
+            if(myx[i] < (xmax+dx/2 + 1e-10) && myx[i] > (xmin-dx/2 - 1e-10))
             {
               boxes[beam][raynum][numcrossing][0] = thisx+1;
               boxes[beam][raynum][numcrossing][1] = thisz+1;
+              #pragma omp atomic update
+              orderplot2[thisx][thisz] += 1;
             }
             lastx = currx;
             numcrossing += 1;
@@ -145,20 +152,28 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           double currz = z[j]-dz/2;
 
 
-          if((myz[i] > (currz) && myz[i-1] < (currz + 1e-11)) || (myz[i] < (currz+1e-11) && myz[i-1] > (currz - 1e-11)))
+          if((myz[i] > (currz) && myz[i-1] < (currz + 1e-10)) || (myz[i] < (currz) && myz[i-1] > (currz - 1e-10)))
           {
+
             double m = (myx[i] - myx[i-1])/(myz[i]-myz[i-1]);
             double b = myx[i] - myz[i]*m;
             double crossz = m*currz+b;
-            if(abs(crossz-lastx)>1.0e-20)
+            if(abs(crossz-lastx) > 1.0e-20)
             {
               ints[beam][raynum][numcrossing]=uray[i];
               crossesz[beam][raynum][numcrossing] = currz;
               crossesx[beam][raynum][numcrossing] = crossz;
-              if(myz[i] < (zmax+dz/2 +1e-11) && myz[i] > (zmin-dz/2-1e-11))
+              if(myz[i] < (zmax+dz/2 +1e-10) && myz[i] > (zmin-dz/2-1e-10))
               {
+            //    cout << "z: "<< thisx+1 << " " << beam << " " << raynum << " " << numcrossing << " " << 0 << endl;
+          //     cout << "z: "<< thisz+1 << " " << beam << " " << raynum << " " << numcrossing << " " << 1 << endl;
+        //  cout << "z: "<< thisx+1 << " " << thisz+1 << " " << beam << " " << raynum << " " << numcrossing << " " << 0 << endl;
+    ///    cout << "z: "<< thisx+1 << " " << thisz+1 << " " << beam << " " << raynum << " " << numcrossing << " " << 0 << endl;
+
                 boxes[beam][raynum][numcrossing][0] = thisx + 1;
                 boxes[beam][raynum][numcrossing][1] = thisz + 1;
+                #pragma omp atomic update
+                orderplot2[thisx][thisz] += 1;
               }
               lastz = currz;
               numcrossing += 1;
@@ -191,10 +206,11 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           slope = (myx[i] - myx[i-1])/(myz[i] - myz[i-1]+1.0e-10);
           ztarg = myz[i-1]+(xtarg-myx[i-1])/slope;
 
-          for(int j = 0; j < nrays;j++)
+          for(int j = 0; j < numstored;j++)
           {
             if(marked[thisx*nz + thisz][j*nbeams + beam] == 0 || marked[thisx*nz + thisz][j*nbeams + beam] > (raynum + 1))
             {
+          //    cout << raynum + 1 << " " << thisx << " " << thisz << " " << j << " " << beam << endl;
               #pragma omp atomic write
               marked[thisx*nz + thisz][j*nbeams + beam] = raynum+1;
               #pragma omp atomic update
@@ -212,12 +228,14 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           }
           slope = (myz[i] - myz[i-1])/(myx[i] - myx[i-1]+1.0e-10);
           xtarg = myx[i]+(ztarg-myz[i-1])/slope;
-          for(int j = 0; j < nrays;j++)
+          for(int j = 0; j < numstored;j++)
           {
             if(marked[thisx*nz + thisz][j*nbeams + beam] == 0 || marked[thisx*nz + thisz][j*nbeams + beam] > (raynum + 1))
             {
               #pragma omp atomic write
               marked[thisx*nz + thisz][j*nbeams + beam] = raynum+1;
+          //    cout << raynum + 1 << " " << thisx << " " << thisz << " " << j << " " << beam << endl;
+
               #pragma omp atomic update
               present[beam][thisx][thisz] += 1.0;
               break;
@@ -233,12 +251,14 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           slope = (myx[i] - myx[i-1])/(myz[i] - myz[i-1]+1.0e-10);
           ztarg = myz[i]+(xtarg-myx[i-1])/slope;
 
-          for(int j = 0; j < nrays;j++)
+          for(int j = 0; j < numstored;j++)
           {
             if(marked[thisx*nz + thisz][j*nbeams + beam] == 0 || marked[thisx*nz + thisz][j*nbeams + beam] > (raynum + 1))
             {
               #pragma omp atomic write
               marked[thisx*nz + thisz][j*nbeams + beam] = raynum+1;
+        //      cout << raynum + 1 << " " << thisx << " " << thisz << " " << j << " " << beam << endl;
+
               #pragma omp atomic update
               present[beam][thisx][thisz] += 1.0;
               break;
@@ -345,7 +365,6 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
   delete [] mykz;
   delete [] myvx;
   delete [] myvz;
-
 }
 
 

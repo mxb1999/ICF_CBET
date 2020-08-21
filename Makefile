@@ -1,25 +1,44 @@
-CC=h5c++ #compiler being used
+CPP=g++#compiler being used
+H5=h5c++
+MATDIR=Matlab
+YORDIR=yorick
+
 IDIR=include
 ODIR=Bin
-LDIR=src
-vpath %.cpp  src
-vpath %.h  src/includes
+SRC_DIR=src
+HDIR=lib/h5
+OPDIR=output
 
-CFLAGS= -g -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial -Wall -Werror -fopenmp #compiler flags
-_DEPS = implSim.h declarations.h simConst.h customMath.h #.h Dependecies
-DEBS = $(patsubst %, $(IDIR)/%,$(_DEPS))
+H5FLAGS = -g -Wall -Werror -fopenmp -Iinclude
+CPPFLAGS= -g  -Wall -std=c++11 -Werror -fopenmp #compiler flags
+LIBS = 	-Iinclude -MMD -MP -lm -I/src/include -I/usr/include/python3.8 -lpython3.8#Library Dependecies
+HLIBS =  -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial
 
-LIBS = 	-lm #Library Dependecies
-_OBJ = Initialize.o cbet.o customMath.o hdf5writer.o implSim.o Launch_Ray_XZ.o RayLaunch.o
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+_COBJ = Initialize.o cbet.o customMath.o hdf5writer.o implSim.o Launch_Ray_XZ.o RayLaunch.o
+COBJ = $(patsubst %,$(ODIR)/%,$(_COBJ))
 
-$(ODIR)/%.o:  $(LDIR)/%.cpp $(DEPS)
-	$(CC) -c -fopenmp -g -o $@ $^
+_HOBJ = hdf5writer.o
+HOBJ = $(patsubst %,$(ODIR)/%,$(_HOBJ))
 
-implSim: $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^  $(LIBS)
+$(ODIR)/%.o:  $(SRC_DIR)/%.cpp
+	$(CPP) -c -fopenmp -g -o $@ $^ $(LIBS)
+
+$(ODIR)/%.o:  $(HDIR)/%.cpp
+	$(H5) -c -fopenmp -g -o $@ $^ $(LIBS)
+
+
+
+implSim: $(COBJ) $(HOBJ)
+	$(H5) $(CPPFLAGS) -o $@ $^  $(LIBS)
 
 .phony: clean
 
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.d *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/implSim.hdf *~ core $(INCDIR)/*~
+
+compare:
+	matlab -nodisplay -nosplash -nodesktop -r "run('m201705_rayTraceTest_v06.m'); exit;" | tail -n +11
+	cd yorick && yorick -i cbet.i
+	make

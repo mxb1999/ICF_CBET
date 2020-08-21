@@ -1,6 +1,6 @@
-#include "include/implSim.h"
-#include "include/declarations.h"
-#include "include/customMath.h"
+#include "implSim.h"
+#include "declarations.h"
+#include "customMath.h"
 using namespace std;
 //dynamically allocate and initialize the arrays
 void initialize()
@@ -35,7 +35,7 @@ void initialize()
   auto check1 = chrono::high_resolution_clock::now();
   for(int i = 0; i < nx*nz; i++)
   {
-    marked[i] = new int[nrays*nbeams]{0};
+    marked[i] = new int[numstored*nbeams]{0};
   }
 
   auto check1_2 = chrono::high_resolution_clock::now();
@@ -106,10 +106,15 @@ void initialize()
   //Calculating the initial energy density, wpe, and machnum values
   span(x, xmin, xmax, nx);
   span(z, zmin, zmax, nz);
+  double* temp1 = new double[nx];
+  double* temp2 = new double[nx];
+  span(temp1, 0.1, 0.4, nx);
+  span(temp2, 1, 1.8, nx);
   for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz;j++)
     {
+      //eden[i][j] = temp[i];
       eden[i][j] = fmax(0.0,((0.3*ncrit-0.1*ncrit)/(xmax-xmin))*(x[i]-xmin)+(0.1*ncrit));
       wpe[i][j] = sqrt(eden[i][j]*1e6*pow(ec,2.0)/(me*e0));
       machnum[i][j] = fmax(0.0,(((-0.4)-(-2.4))/(xmax-xmin))*(x[i]-xmin))+(-2.4);

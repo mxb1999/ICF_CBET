@@ -1,5 +1,5 @@
-#include "include/implSim.h"
-
+#include "implSim.h"
+#include <Python.h>
 using namespace std;
 //main function called in program
 int main(int argc, char const *argv[]) {
@@ -29,5 +29,14 @@ int main(int argc, char const *argv[]) {
   cout << "HDF5 Write CPU Time: " << chrono::duration_cast<chrono::milliseconds>(stop4-start4).count() << " ms" << endl;
   cout << "_____________________________________________" << endl;
   cout << "Total CPU Time: " << chrono::duration_cast<chrono::milliseconds>(stop4-start1).count() << " ms" << endl;
+
+
+  char filename[] = "matplotting.py";
+	FILE* fp;
+	Py_Initialize();
+  cout << "Hello" << endl;
+	fp = _Py_fopen(filename, "r");
+	PyRun_SimpleFile(fp, filename);
+	Py_Finalize();
   return 0;
 }
