@@ -10,7 +10,7 @@ The following packages are required to run the simulation and use the post-proce
   * Numpy
 * HDF5
   * h5c++ (found in the hdf5-helpers package)
-* OpenMP
+* OpenMP\n
 To install these dependencies automatically (on an Ubuntu based distribution), run:
 ```bash
 sudo make install
