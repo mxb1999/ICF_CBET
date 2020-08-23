@@ -36,4 +36,21 @@ implSim: $(COBJ) $(HOBJ) #Program compile
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
 	rm -f $(ODIR)/*.d *~ core $(INCDIR)/*~
-	#rm -f $(ODIR)/implSim.hdf *~ core $(INCDIR)/*~
+
+.phony: reset
+
+reset:
+	make clean
+	make
+
+
+.phony: install
+
+install:
+	apt-get install libhdf5-serial-dev
+	apt-get install hdf5-helpers
+	apt-get install python3
+	apt-get install python3-matplotlib
+	apt-get install python3-numpy
+	apt-get install python3-tk
+	apt-get install libomp-dev
