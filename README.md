@@ -3,7 +3,7 @@ ICF_CBET is a simulation primarily written in C++ with a Python plotting post-pr
 Russ Follett (DOI: 10.1103/PhysRevE.98.043202), and the more basic algorithm used here is derived from a previous simulation written in Yorick by Professor Adam Sefkow (University of Rochester). CBET occurs as a consequence of the ion-acoustic waves created by the beat frequency of overlapping laser beams. These waves mediate an energy transfer between the waves, which has significant consequences for research into inertial confinement fusion, as uniform energy deposition across the target is essential. This simulation is an in-production attempt to model this phenomenon in its simplest case, a 2 beam crossing modeled in 2 dimensions. Note that this was developed in a Linux environment, and therefore the library dependencies are configured for a standard Linux file organization.
 ## Configuration and Use
 The following packages are required to run the simulation and use the post-processor:
-* g++11
+* C++11 along with g++
 * Python 3 (along with the following packages)
   * Tkinter
   * Matplotlib
