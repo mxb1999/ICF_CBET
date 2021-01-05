@@ -7,13 +7,13 @@
 //Used to determine print statements, 1 = on, 0 = off
 const int printUpdates = 1;
 const int printTimings = 1;
-const int printCBETDiagnostics = 0;
+const int printCBETDiagnostics = 1;
 const int printRayTrackDiagnostics = 0;
 const int printHDF5Diagnostics = 0;
 const int printSpecificTimings = 1;
 const int pyPlot = 1; //Determines whether the python script will automatically
 const int iterate = 1;//determine whether the simulation will iterate
-
+const int calcCBET = 1;
 
 
 
@@ -43,8 +43,8 @@ const double omega = 2*pi*freq;	// frequency of light, in rad/s
 const double ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));
 
 //Grid Constants for X by Z grid
-const int nx=100; const float xmin = -5.0e-4; const float xmax=5.0e-4; const float dx = (xmax-xmin)/(nx-1);
-const int nz=100; const float zmin = -5.0e-4; const float zmax=5.0e-4; const float dz = (zmax-zmin)/(nz-1);
+const int nx=201; const float xmin = -5.0e-4; const float xmax=5.0e-4; const float dx = (xmax-xmin)/(nx-1);
+const int nz=201; const float zmin = -5.0e-4; const float zmax=5.0e-4; const float dz = (zmax-zmin)/(nz-1);
 
 //Constants pertaining to iteration and parallelization
 const double maxIncrement = 0.2;
@@ -52,7 +52,7 @@ const int maxIterations = 100*iterate;
 //Number of parallel threads
 const int threads = 12;
 //Fractional convergence cutoff (when the field stops changing by (converge*100) %)
-const double converge = 1e-6;
+const double converge = 1e-3;
 
 //Beam/Ray Tracking parameters
 const int nbeams = 2; //number of interacting beams

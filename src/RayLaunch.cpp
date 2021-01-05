@@ -103,24 +103,33 @@ void updateIntersections()
   {
     for(int j = 1; j < nz; j++)
     {
-      for(int m = 0; m < numstored; m++)
+      int temp1;
+      int size1 = marked[(i*nz+j)*nbeams].size();
+      //if at least two beams are in the same x and z coordinates, update intersections
+      if((temp1 = marked[(i*nz+j)*nbeams].front()) == 0)
       {
-        //if at least two beams are in the same x and z coordinates, update intersections
-        if(marked[i*nz+j][m*nbeams+0] == 0)
+        marked[(i*nz+j)*nbeams].pop();
+        marked[(i*nz+j)*nbeams].push(temp1);
+        break;
+      }else
+      {
+        marked[(i*nz+j)*nbeams].pop();
+        marked[(i*nz+j)*nbeams].push(temp1);
+        int temp2;
+        int size2 = marked[(i*nz+j)*nbeams+1].size();
+        for(int l = 0; l < size2; l++)
         {
-          break;
-        }else
-        {
-          for(int l = 0; l < numstored; l++)
+          //break if no ray from the other beam is found
+          if((temp2 = marked[(i*nz+j)*nbeams+1].front()) == 0)
           {
-            //break if no ray from the other beam is found
-            if(marked[i*nz+j][l*nbeams+1] == 0)
-            {
-              break;
-            }else
-            {
-              intersections[i][j] += 1.0;
-            }
+            marked[(i*nz+j)*nbeams+1].pop();
+            marked[(i*nz+j)*nbeams+1].push(temp2);
+            break;
+          }else
+          {
+            marked[(i*nz+j)*nbeams+1].pop();
+            marked[(i*nz+j)*nbeams+1].push(temp2);
+            intersections[i][j] += 1.0;
           }
         }
       }

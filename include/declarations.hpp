@@ -1,4 +1,5 @@
 #include <vector>
+#include <queue>
 //Used to instantiate the variables declared in implSim.h without taking up half of the Initialize file
 double maxDev;
 int beam;
@@ -17,7 +18,7 @@ int** counter;
 //Pointers for necessary arrays
 
 double** intersections; //nx nz
-int** marked; //nx nz numstored nbeams
+queue<int>* marked; //nx nz numstored nbeams
 double** dedendx; //nx nz
 double** dedendz; //nx nz
 double* x; //nx

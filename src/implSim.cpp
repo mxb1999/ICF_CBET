@@ -18,7 +18,10 @@ int main(int argc, char const *argv[]) {
   launchRays();
   auto stop2 = chrono::high_resolution_clock::now();
   auto start3 = chrono::high_resolution_clock::now();
-  cbet();
+  if(calcCBET)
+  {
+    cbet();
+  }
   auto stop3 = chrono::high_resolution_clock::now();
   auto start4 = chrono::high_resolution_clock::now();
   updateH5();

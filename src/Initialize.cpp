@@ -2,6 +2,7 @@
 #include "declarations.hpp"
 #include "customMath.hpp"
 using namespace std;
+
 //dynamically allocate and initialize the arrays
 void initialize()
 {
@@ -10,7 +11,7 @@ void initialize()
 
   //dynamic allocation (using pointers to access arrays so the stack is not filled)
   intersections = new double*[nx]; //nx nz
-  marked = new int*[nx * nz]; //nx nz nrays nbeams
+  marked = new queue<int>[nx * nz * nbeams]; //nx nz nrays nbeams
   dedendx = new double*[nx]; //nx nz
   dedendz = new double*[nx]; //nx nz
   x = new double[nx]{0.0}; //nx nz
@@ -33,11 +34,10 @@ void initialize()
   crossesx = new double**[nbeams]; //nbeams nrays ncrossings
   ints = new int**[nbeams]; //nbeams nrays ncrossings
   auto check1 = chrono::high_resolution_clock::now();
-  for(int i = 0; i < nx*nz; i++)
+  for(int i = 0; i < nx*nz*nbeams; i++)
   {
-    marked[i] = new int[numstored*nbeams]{0};
+    marked[i] = queue<int>();
   }
-
   auto check1_2 = chrono::high_resolution_clock::now();
     for(int i = 0; i < nx; i++)
     {

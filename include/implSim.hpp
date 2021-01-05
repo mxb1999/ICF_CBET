@@ -1,4 +1,4 @@
-
+#include <queue>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -8,6 +8,8 @@
 #include <cmath>
 #include "customMath.hpp"
 #include "simConst.hpp"
+//#include "LinkedList.h"
+
 #ifndef IMPLSIM_H_
 #define IMPLSIM_H_
     //Functions
@@ -16,6 +18,20 @@
   void launch_ray_XZ(double x_init, double z_init, double kx_init, double kz_init,double urayinit, int raynum);
   void cbet();
   void updateH5();
+  typedef struct Intersection Intersection;
+  typedef struct Ray Ray;
+  struct Crossing
+  {
+      int x;
+      int z;
+  };
+  struct Ray
+  {
+    int index;
+    //LinkedList* crossings;
+    double intensity;
+  };
+
   //Values needed throughout simulation
   extern double maxDev;//stores maximum change in a given iteration, determines convergence
   extern int beam;//stores which beam is currently being tracked
@@ -23,23 +39,32 @@
   extern int count;//Used to track a specific grid square along with counter, tracking change over time
   extern int** counter;
   //Launch Ray Values
-
-
   extern double cs;
   extern double injected;
   extern int gridcount;
+  extern double** intersections;
   extern int ray1num;
   extern double maxInc;
   //Pointers for necessary arrays
-  extern double** intersections; //nx nz
-  //marked stores the trajectory of a given ray
-  extern int** marked; //nx nz numstored nbeams Stored as a 2D array, saved SIGNIFICANT amount of time in initialization
+  //extern double** intersections; //nx nz
+  //can store both marked and boxes in an adjacency list of Intesection objects?
+  /*capabilities needed:
+    track future path of ray across other zones -> boxes
+    track which rays have entered a given zone -> marked
+  */
+  /*
+  Use crossings adjacency list to get crossings, can use/update sampleIntensity
+  */
+  extern Ray** beamIndex;//nbeams nrays
+  extern Ray*** spatialIndex; //nbeams nx nz
+  extern queue<int>* marked; //nx nz nbeams Stored as a 1D array, saved SIGNIFICANT amount of time in initialization
   extern double** dedendx; //nx nz
   extern double** dedendz; //nx nz
   extern double* x; //nx
   extern double* z; //nz
   extern double** eden; //nx nz
-
+  //Marked Stores which rays from each beam have passed through each zone
+  //Boxes Stores whi
   extern double*** edep; //nx+2 nz+2 nbeams
   extern int*** present; //nx nz nbeams
   extern double** machnum; //nx nz

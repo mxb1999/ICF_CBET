@@ -1,5 +1,5 @@
 #include "implSim.hpp"
-#include <hdf5/serial/H5Cpp.h>
+#include <H5Cpp.h>
 
 
 using namespace H5;

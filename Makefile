@@ -10,7 +10,7 @@ OPDIR=output
 
 H5FLAGS = -g -Wall -Werror -fopenmp -Iinclude#Compiler flags for h5c++
 CPPFLAGS= -g  -Wall -std=c++11 -Werror -fopenmp #compiler flags for g++
-LIBS = 	-Iinclude -MMD -MP -lm -I/src/include -I/usr/include/python3.8 -lpython3.8#Library Dependecies
+LIBS = 	-Iinclude -MMD -MP -lm -I/src/include -I/usr/include/python3.9 -lpython3.9#Library Dependecies
 HLIBS =  -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial#hdf5 libraries
 
 _COBJ = Initialize.o cbet.o customMath.o hdf5writer.o implSim.o Launch_Ray_XZ.o RayLaunch.o #Core C++ files being used

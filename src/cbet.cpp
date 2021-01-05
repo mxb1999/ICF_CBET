@@ -100,6 +100,7 @@ void calculateMult(int ix, int iz, int i, int j, int m, int* numrays, int** mark
     if (dkmag[i+1][marker[i+1][n2]][markerCopy[i+1][n2]] >= 1.0*dx)
     {
       //beam 2 CBET multiplier
+
       #pragma omp atomic write
       W_new[i+1][ix][iz] =W[i+1][ix][iz]*exp(-1*W[i][ix][iz]*dkmag[i+1][marker[i+1][n2]][markerCopy[i+1][n2]]*gain2/sqrt(epsilon));
       //beam 1 CBET multiplier
@@ -113,6 +114,8 @@ void update_CBETPar()
 {
   //storage array to allow for data level parallelization
   //cout << "Updating CBET Intensities" << endl;
+  double convergeArr[threads]{0.0};
+
   //perform calculation for each crossing of each ray calculated for the beams in launch rays
   for(int i = 0; i < nbeams-1;i++)
   {
@@ -133,52 +136,43 @@ void update_CBETPar()
         {
           //First have to find all of the rays present from both beams in the coordinate (To generalize for N beams, encapsulate in a for loop)
           double tempStore = maxDev;
-          int numrays[nbeams]{0};
+
           int** marker = new int*[nbeams];
           int** markerCopy = new int*[nbeams];
           //find the number of beams
-          for(int q = 0; q < numstored; q++)
-          {
-            if(marked[ix*nz+iz][q*nbeams + 0] != 0)
-            {
-              numrays[0]++;
-            }
-            if(marked[ix*nz+iz][q*nbeams + 1] != 0)
-            {
-              numrays[1]++;
-            }
-          }
+          int s1 = fmax(1,marked[(ix*nz+iz)*nbeams + i].size());
+          int s2 = fmax(1,marked[(ix*nz+iz)*nbeams + i+1].size());
+          int numrays[nbeams] = {s1, s2};
           //allocate space for marker arrays
-          marker[0] = new int[numrays[0]];
-          marker[1] = new int[numrays[1]];
-          markerCopy[0] = new int[numrays[0]];
-          markerCopy[1] = new int[numrays[1]];
+          marker[0] = new int[s1];
+          marker[1] = new int[s2];
+          markerCopy[0] = new int[s1];
+          markerCopy[1] = new int[s2];
           int cnt1 = 0;
           int cnt2 = 0;
           //iterate over marked at (ix, iz) to find all incident rays
-          for(int q = 0; q < numstored; q++)
+          for(int q = 0; q < s1; q++)
           {
-            //beam 1 rays
-            if(marked[ix*nz+iz][q*nbeams + i] != 0)
-            {
-              marker[0][cnt1] = marked[ix*nz+iz][q*nbeams + i] - 1;
-              markerCopy[0][cnt1] = marked[ix*nz+iz][q*nbeams + i] - 1;
-              cnt1++;
-            }
-            //beam 2 rays
-            if(marked[ix*nz+iz][q*nbeams + i + 1] != 0)
-            {
-              marker[1][cnt2] = marked[ix*nz+iz][q*nbeams + i + 1] - 1;
-              markerCopy[1][cnt2] = marked[ix*nz+iz][q*nbeams + i + 1] - 1;
-              cnt2++;
-            }
+            marker[0][q] = marked[(ix*nz+iz)*nbeams + i].front() - 1;
+            marked[(ix*nz+iz)*nbeams + i].push(marker[0][q]+1);
+            marked[(ix*nz+iz)*nbeams + i].pop();
+            markerCopy[0][q] = marker[0][q];
+          }
+          for(int q = 0; q < s2; q++)
+          {
+            marker[1][q] = marked[(ix*nz+iz)*nbeams + i+1].front() - 1;
+            marked[(ix*nz+iz)*nbeams + i+1].push(marker[1][q]+1);
+            marked[(ix*nz+iz)*nbeams + i+1].pop();
+            markerCopy[1][q] = marker[1][q];
           }
           //locate ray j's index within the zone
           int ray1num = 0;
           for(int r = 0; r < numrays[i]; r++)
           {
+
             if(marker[i][r] == j)
             {
+
               ray1num = r;
               break;
             }
@@ -205,9 +199,9 @@ void update_CBETPar()
           additive_change[0] = (-1.0 * (1.0 - (W_new[i][ix][iz]/W[i][ix][iz])) * abs(i_b[i][ix][iz] - i_b_prev[i][ix][iz])*(i_b[i][ix][iz] != 0));//change to be applied to beam 1 rays
           additive_change[1] = (-1.0 * (1.0 - (W_new[i+1][ix][iz]/W[i+1][ix][iz])) *  abs(i_b[i+1][ix][iz] - i_b_prev[i+1][ix][iz]));//change to be applied to beam 2 rays
           int kill = 0;
-          if(i_b_new[i][ix][iz] < abs(additive_change[0]) && additive_change[0] < 0 || i_b_new[i][ix][iz] <= 0)//if beam 1's intensity is/will be below zero, kill the rays in this zone and any zones that they will pass through in the future, only happens at high intensities
+          if(i_b_new[i][ix][iz] < abs(additive_change[0]) && additive_change[0] < 0 || abs(i_b_new[i][ix][iz]) <= 1e-10)//if beam 1's intensity is/will be below zero, kill the rays in this zone and any zones that they will pass through in the future, only happens at high intensities
           {
-            additive_change[1] = i_b_new[i][ix][iz] * (i_b_new[i][ix][iz] > 0);//if beam 1 still has energy, that will be transferred to beam 2 to conserve energy
+            additive_change[1] = i_b_new[i][ix][iz] * (abs(i_b_new[i][ix][iz]) <= 1e-10);//if beam 1 still has energy, that will be transferred to beam 2 to conserve energy
             #pragma omp atomic write
             i_b_new[i][ix][iz] = 0;
             additive_change[0] = 0;
@@ -217,14 +211,26 @@ void update_CBETPar()
             #pragma omp atomic update
             i_b_new[i][ix][iz] += additive_change[0];//standard case
           }
-          tempStore = fmax(abs(additive_change[0]/(i_b[i][ix][iz]+(i_b_new[i][ix][iz] <= 1e-10))), tempStore);//variable used to store convergence
-          tempStore = fmax(abs(additive_change[1]/(i_b[i+1][ix][iz]+(i_b_new[i+1][ix][iz] <= 1e-10))), tempStore);//variable used to store convergence
+          if(abs(i_b_new[i][ix][iz]) < 1e-10 && additive_change[1] > 1)
+          {
+            printf("%e %e\n",i_b_new[i][ix][iz], additive_change[1]);
+          }
+          tempStore = fmax(abs(additive_change[0]/(i_b[i][ix][iz]+(abs(i_b_new[i][ix][iz]) <= 1e-10))), tempStore);//variable used to store convergence
+          tempStore = fmax(abs(additive_change[1]/(i_b[i+1][ix][iz]+(abs(i_b_new[i+1][ix][iz]) <= 1e-10))), tempStore);//variable used to store convergence
+          if(tempStore  > 1e10)
+          {
+            printf("TempStore 1 %e\n", tempStore);
+          }
           #pragma omp atomic update
           i_b_new[i+1][ix][iz] += additive_change[1];//apply update to beam 1
 
-
-          double x_prev = x[ix];
-          double z_prev = z[iz];
+          if(isnan(i_b_new[i][ix][iz]))
+          {
+          //  printf("Old: %f || Change %f || Kill Status: %d\n", i_b[i][ix][iz], additive_change[0], kill);
+          //  printf("W_new[i][ix][iz]: %f || W[i][ix][iz] %f || Prev: %d\n", W_new[i][ix][iz],W[i][ix][iz], i_b_prev[i][ix][iz]);
+          }
+          int x_prev = -1;//x[ix];
+          int z_prev = -1;//z[iz];
           //for every future crossing of ray j
           for(int l = m+1; l < ncrossings;l++)
           {
@@ -236,18 +242,30 @@ void update_CBETPar()
               double x_curr = x[ix_next_i];
               double z_curr = z[iz_next_i];
               //if l is not a previously updated crossing (within this loop)
-              if(x_curr != x_prev || z_curr != z_prev)
+              if(ix_next_i != x_prev || iz_next_i != z_prev)//x_curr != x_prev && z_curr != z_prev)
               {
-                double add = additive_change[0];//*present[i][ix][iz]/present[i][ix_next_i][iz_next_i]; // Change to be applied
-                double comp = add/(i_b_new[i][ix_next_i][iz_next_i]+(i_b_new[i][ix_next_i][iz_next_i] < 1e-10));//Variable simply for the sake of clarity when updating tempstore
-                tempStore = fmax(tempStore, comp);//store convergence variable
-                #pragma omp atomic update
-                i_b_new[i][ix_next_i][iz_next_i] += add + kill*(-1)*(i_b_new[i][ix_next_i][iz_next_i] + add);//apply update, set intensity to 0 if kill == 1
-                #pragma omp atomic update
-                i_b[i][ix_next_i][iz_next_i] += kill*(-1)*i_b[i][ix_next_i][iz_next_i];//set initial intensity to 0 if kill == 1`
+                double add = additive_change[0]*present[i][ix][iz]/present[i][ix_next_i][iz_next_i]; // Change to be applied
+                double comp = add/(i_b_new[i][ix_next_i][iz_next_i]+(abs(i_b_new[i][ix_next_i][iz_next_i]) < 1e-10));//Variable simply for the sake of clarity when updating tempstore
+                if(tempStore == comp && comp > 1e10)
+                {
+                  printf("TempStore 2 %e || %e : %e || %e\n", tempStore, i_b_new[i][ix_next_i][iz_next_i], i_b_new[i+1][ix_next_i][iz_next_i], add);
+                }
+                int killspot;
+                if(abs(add) > abs(i_b_new[i][ix_next_i][iz_next_i]) && add < 0)
+                {
+                  #pragma omp atomic write
+                  i_b_new[i][ix_next_i][iz_next_i] = 0;
+                  #pragma omp atomic write
+                  i_b[i][ix_next_i][iz_next_i] = 0;//set initial intensity to 0 if kill == 1`
+                }else{
+                  #pragma omp atomic update
+                  i_b_new[i][ix_next_i][iz_next_i] += add;
+                  tempStore = fmax(tempStore, comp);//store convergence variable
+
+                }
               }
-              x_prev = x_curr;
-              z_prev = z_curr;
+              x_prev = ix_next_i;//x_curr;
+              z_prev = iz_next_i;//z_curr;
             }else
             {
               break;
@@ -267,28 +285,36 @@ void update_CBETPar()
               double x_curr = x[ix_next_other];
               double z_curr = z[iz_next_other];
               //if this coordinate has not been updated in this loop
-              if(x_curr != x_prev || z_curr != z_prev)
+              if(ix_next_other != x_prev || iz_next_other != z_prev)//x_curr != x_prev && z_curr != z_prev)
               {
 
-                double add = additive_change[1];//*present[i][ix][iz]/present[i+1][ix_next_other][iz_next_other]; //change to be applied
+                double add = additive_change[1]*present[i][ix][iz]/present[i+1][ix_next_other][iz_next_other]; //change to be applied
                 double comp = add/(i_b_new[i+1][ix_next_other][iz_next_other]+(i_b_new[i+1][ix_next_other][iz_next_other] < 1e-10)); // convergence variable
                 tempStore = fmax(tempStore, comp);
+                if(tempStore == comp && comp > 1e10)
+                {
+                  printf("TempStore 3 %e\n", tempStore);
+                }
+
                 #pragma omp atomic update
                 i_b_new[i+1][ix_next_other][iz_next_other] += add;//update downstream intensity
               }
               //Set up variables for next iteration
-              x_prev = x_curr;
-              z_prev = z_curr;
+              x_prev = ix_next_other;//x_curr;
+              z_prev = iz_next_other;//z_curr;
             }else
             {
               break;
             }
           }
-          #pragma omp atomic write
-          maxDev = tempStore;
+          convergeArr[omp_get_thread_num()] = max(abs(tempStore), convergeArr[omp_get_thread_num()]);
         }
       }
     }
+  }
+  for(int i = 0; i < threads; i++)
+  {
+    maxDev = fmax(maxDev, convergeArr[i]);
   }
   //Print energy conservation value
   if(printCBETDiagnostics)
@@ -340,14 +366,21 @@ void cbet()
   update_CBETPar();
   int cnt = 0;
   //CBET Iteration Loop
-  while(abs(maxDev) > converge && cnt < maxIterations)
+  while(abs(maxDev) > converge && cnt < 1000)// && cnt < maxIterations)
   {
     prev = maxDev;
     maxDev = 0;
     update_CBETPar();
     cnt++;
+    if(printCBETDiagnostics)
+    {
+      cout << "Iteration: " << cnt << "  Converging: " << maxDev << endl;
+    }
   }
-  cout << maxDev << endl;
+  if(printCBETDiagnostics)
+  {
+    cout << "Iteration: " << cnt << "  Converging: " << maxDev << endl;
+  }
   auto end = chrono::high_resolution_clock::now();
   if(printUpdates)
   {

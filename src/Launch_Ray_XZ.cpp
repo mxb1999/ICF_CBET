@@ -1,6 +1,66 @@
 #include "implSim.hpp"
 #include "customMath.hpp"
 using namespace std;
+
+void track(int raynum, int xinit, int zinit, int kxinit, int kzinit, int** count, int beam, double** force, double urayinit)
+{
+
+  double xp = xinit;//initial x position
+  double zp = zinit;//initial z position
+  int currX = (int)((xp-xmin)*nx/(xmax-xmin));//initial x cell location
+  int currZ = (int)((zp-zmin)*nz/(zmax-zmin));//initial z cell location
+  //initialize ray variables
+  double wpeInit = sqrt(eden[currX][currZ]*1e6*pow(ec,2.0)/(me*e0));
+  double k = sqrt((pow(omega,2.0)-pow(wpeInit,2.0))/pow(c,2.0));
+  double knorm = sqrt(pow(kxinit,2.0)+pow(kzinit,2.0));
+  double kx = k*kxinit/knorm;
+  double kz = k*kzinit/knorm;
+  double rayV[] = {kx*pow(c,2)/omega, kz*pow(c,2)/omega};//ray velocity
+
+  //storage variables to enable intelligent updates
+  int prevX = 0;
+  int prevZ = 0;
+  double deltaX;
+  double deltaZ;
+  int numcrossing = 0;
+  while(abs(xp) <= xmax && abs(zp) <= zmax)
+  {
+    //If the ray enters a new cell
+    int cond = (prevX != currX || prevZ != currZ);
+    if(prevX != currX || prevZ != currZ)
+    {
+      int delx = (prevX < currX);
+      int delz = (prevZ < currZ);
+      deltaX = xp-dx*currX;
+      deltaZ = zp-dz*currZ;
+      boxes[beam][raynum][numcrossing][0] = currX + 1;
+      boxes[beam][raynum][numcrossing][1] = currZ + 1;
+      marked[(currX*nz + currZ)*nbeams + beam].push(raynum+1);
+      crossesx[beam][raynum][numcrossing] = xp;    //If the ray spends multiple iterations in the same cell
+      crossesx[beam][raynum][numcrossing] = zp;
+    }else
+    {
+
+    }
+    rayV[0] -= force[0][currX*nz + currZ]*dt;
+    rayV[1] -= force[1][currX*nz + currZ]*dt;
+    deltaX = rayV[0]*dt;
+    deltaZ = rayV[1]*dt;
+    //Update position variables for comparison in the next iteration
+    prevX = currX;
+    prevZ = currZ;
+    xp += rayV[0]*dt;
+    zp += rayV[1]*dt;
+    numcrossing++;
+    currX = (int)((xp-xmin)*nx/(xmax-xmin));
+    currZ = (int)((zp-zmin)*nz/(zmax-zmin));
+    //if(raynum > nrays)
+      //printf("XF <%e,%e>, %d\n", rayV[0], rayV[1], raynum);
+
+  }
+}
+
+
 //initializing necessary arrays for the calculation
 void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, double urayinit, int raynum)
 {
@@ -168,52 +228,27 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         markingx[i] = thisx;
         markingz[i] = thisz;
         if(markingx[i] != markingx[i-1] && markingz[i] != markingz[i-1]) //ensure that the ray has left the previous grid zone during the last time step
-
         {
           //store that this ray has crossed this zone
-          for(int j = 0; j < numstored;j++)
-          {
-            if(marked[thisx*nz + thisz][j*nbeams + beam] == 0)
-            {
-              #pragma omp atomic write
-              marked[thisx*nz + thisz][j*nbeams + beam] = raynum+1;//this ray has crossed this zone from this beam
-              #pragma omp atomic update
-              present[beam][thisx][thisz] += 1.0;//another ray has crossed this zone from this beam
-              break;
-            }
-          }
-        }else if(markingz[i] != markingz[i-1] )//ensure that the ray has left the previous grid zone during the last time step
+          marked[(thisx*nz + thisz)*nbeams+beam].push(raynum+1);//this ray has crossed this zone from this beam
+          #pragma omp atomic update
+          present[beam][thisx][thisz] += 1.0;//another ray has crossed this zone from this beam
+        }else if(markingz[i] != markingz[i-1])//ensure that the ray has left the previous grid zone during the last time step
         {
-
-          for(int j = 0; j < numstored;j++)
-          {
-            if(marked[thisx*nz + thisz][j*nbeams + beam] == 0 )
-            {
-              #pragma omp atomic write
-              marked[thisx*nz + thisz][j*nbeams + beam] = raynum+1;//this ray has crossed this zone from this beam
-              #pragma omp atomic update
-              present[beam][thisx][thisz] += 1.0;//another ray has crossed this zone from this beam
-              break;
-              break;
-            }
-          }
+          //store that this ray has crossed this zone
+          marked[(thisx*nz + thisz)*nbeams+beam].push(raynum+1);//this ray has crossed this zone from this beam
+          #pragma omp atomic update
+          present[beam][thisx][thisz] += 1.0;//another ray has crossed this zone from this beam
         }else if (markingx[i] != markingx[i-1])//ensure that the ray has left the previous grid zone during the last time step
         {
-          for(int j = 0; j < numstored;j++)
-          {
-            if(marked[thisx*nz + thisz][j*nbeams + beam] == 0 )
-            {
-              #pragma omp atomic write
-              marked[thisx*nz + thisz][j*nbeams + beam] = raynum+1;//this ray has crossed this zone from this beam
-              #pragma omp atomic update
-              present[beam][thisx][thisz] += 1.0;//another ray has crossed this zone from this beam
-              break;
-            }
-          }
+          //store that this ray has crossed this zone
+          marked[(thisx*nz + thisz)*nbeams+beam].push(raynum+1);//this ray has crossed this zone from this beam
+          #pragma omp atomic update
+          present[beam][thisx][thisz] += 1.0;//another ray has crossed this zone from this beam
         }
 
 
-
+        printf("%f %f\n",uray[i], uray[i-1]);
         //Deposit energy due to the incident ray
         uray[i] = uray[i-1];
   	    double increment = uray[i];
