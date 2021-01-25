@@ -9,12 +9,18 @@
   #define CUDA 1
   #define OPENCL 2
 
-  struct gconfig
+  class GConfig
   {
-    short type;//type defined in above macros
-    short cus;//number of sms/compute units
-    short numProc;//number of cards in system
-    char* arch;//architecture generation number, used for compilation and debugging
+    private:
+      short type;//type defined in above macros
+      short cus;//number of sms/compute units
+      short numProc;//number of cards in system
+      char* arch;//architecture generation number, used for compilation and debugging
+    public:
+      void* gpuMalloc(size_t size, int direction);
+      void gpuMemcpy(void* device, void* host, size_t size, int direction);
+      void* deviceConstTransfer(void** hostP, void** devP, size_t size);
+
   };
   static int gputype;//stores whether the GPU is utilizing CUDA or OpenCL  //TO BE COMPLETED LATER
   #define NONE 0

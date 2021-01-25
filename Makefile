@@ -22,7 +22,7 @@ HLIBS =  -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial#hdf5 libraries
 _MAINOBJ = implSim.o #Main execution files not involved with any individual module
 MAINOBJ = $(patsubst %,$(ODIR)/%,$(_MAINOBJ))
 
-_CBETOBJ = cbet_2.0.o #CBET Module source files
+_CBETOBJ = cbet.o #CBET Module source files
 CBETOBJ = $(patsubst %,$(ODIR)/%,$(_CBETOBJ))
 
 _TRACEOBJ = Launch_Ray_XZ.o RayLaunch.o #Ray tracking module source files

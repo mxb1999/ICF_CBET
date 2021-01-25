@@ -471,8 +471,8 @@ void launch_ray_XZ(double x_init, double z_init, double kx_init, double kz_init,
   {
     for(int i = 0; i < ncrossings; i++)
     {
-      int temp1 = *vec4D(boxes,beam,raynum,i,0,nrays, ncrossings,2);
-      int temp2 = *vec4D(boxes,beam,raynum,i,1,nrays, ncrossings,2);
+      int temp1 = vec4D(boxes,beam,raynum,i,0,nrays, ncrossings,2);
+      int temp2 = vec4D(boxes,beam,raynum,i,1,nrays, ncrossings,2);
       if(temp1 || temp2)
       {
 

@@ -617,9 +617,9 @@ void cbet()
   do{
     prev = maxDev;
     maxDev = 0;
-    updateMult();
-    updateRays();
-    //update_CBETPar();
+    //updateMult();
+    //updateRays();
+    update_CBETPar();
     cnt++;
     if(printCBETDiagnostics)
     {

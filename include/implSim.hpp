@@ -12,11 +12,70 @@
 //#include "LinkedList.h"
 
 #ifndef IMPLSIM_H_
-#define IMPLSIM_H_
+#define IMPLSIM_H_ 
   template <typename T>
-  inline T* vec4D(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
+  inline T vec4D(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
   {
-    return &arr[(((a)*d2+b)*d3+c)*d4+d];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+    return arr[(((a)*d2+b)*d3+c)*d4+d];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+
+  template <typename T>
+  inline T vec3D(T* arr, int a, int b, int c, int d2, int d3)
+  {
+    return arr[((a)*d2+b)*d3+c];
+  }
+  template <typename T>
+  inline T vec2D(T* arr, int a, int b, int d2)
+  {
+    return arr[(a)*d2+b];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  inline T* vec4DP(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
+  {
+    return arr + (((a)*d2+b)*d3+c)*d4+d;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+
+  template <typename T>
+  inline T* vec3DP(T* arr, int a, int b, int c, int d2, int d3)
+  {
+    return arr + ((a)*d2+b)*d3+c;
+  }
+  template <typename T>
+  inline T* vec2DP(T* arr, int a, int b, int d2)
+  {
+    return arr + (a)*d2+b;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  inline void vec4DW(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
+  {
+    arr[(((a)*d2+b)*d3+c)*d4+d] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+
+  template <typename T>
+  inline void vec3DW(T* arr, int a, int b, int c, int d2, int d3, T val)
+  {
+    arr[((a)*d2+b)*d3+c] = val;
+  }
+  template <typename T>
+  inline void vec2DW(T* arr, int a, int b, int d2, T val)
+  {
+    arr[(a)*d2+b] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+
+  template <typename T>
+  inline void vec4DI(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
+  {
+    arr[(((a)*d2+b)*d3+c)*d4+d] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  inline void vec3DI(T* arr, int a, int b, int c, int d2, int d3, T val)
+  {
+    arr[((a)*d2+b)*d3+c] += val;
+  }
+  template <typename T>
+  inline void vec2DI(T* arr, int a, int b, int d2, T val)
+  {
+    arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
     //Functions
   extern void initialize();
@@ -43,16 +102,16 @@
   //extern int beam;//stores which beam is currently being tracked
   extern int iter;//stores iteration number, not currently used
   extern int count;//Used to track a specific grid square along with counter, tracking change over time
-  extern int** counter;
+  extern int* counter;
   //Launch Ray Values
   extern double cs;
   extern double injected;
   extern int gridcount;
-  extern double** intersections;
+  extern int* intersections;
   extern int ray1num;
   extern double maxInc;
   //Pointers for necessary arrays
-  //extern double** intersections; //nx nz
+  //extern double* intersections; //nx nz
   //can store both marked and boxes in an adjacency list of Intesection objects?
   /*capabilities needed:
     track future path of ray across other zones -> boxes
@@ -61,59 +120,58 @@
   /*
   Use crossings adjacency list to get crossings, can use/update sampleIntensity
   */
-  extern short** rayAdjList;//ith level has (nbeams-1-i)*nrays*nrays ints Try short for now, doubtful that over 32,000 rays will be used atm for each beam
-  extern Ray** beamIndex;//nbeams nrays
-  extern Ray*** spatialIndex; //nbeams nx nz
+  extern short* rayAdjList;//ith level has (nbeams-1-i)*nrays*nrays ints Try short for now, doubtful that over 32,000 rays will be used atm for each beam
+  extern Ray* beamIndex;//nbeams nrays
+  extern Ray* spatialIndex; //nbeams nx nz
   extern int* marked; //nx nz nbeams Stored as a 1D array, saved SIGNIFICANT amount of time in initialization
-  extern double** dedendx; //nx nz
-  extern double** dedendz; //nx nz
-  extern int** raypath; //nx nz store single ray path
+  extern double* dedendx; //nx nz
+  extern double* dedendz; //nx nz
+  extern int* raypath; //nx nz store single ray path
   extern double* x; //nx
   extern double* z; //nz
-  extern double** eden; //nx nz
+  extern double* eden; //nx nz
+  
   //Marked Stores which rays from each beam have passed through each zone
   //Boxes Stores whi
-  extern double*** edep; //nx+2 nz+2 nbeams
-  extern int*** present; //nx nz nbeams
-  extern double** machnum; //nx nz
+  extern double* edep; //nx+2 nz+2 nbeams
+  extern int* present; //nx nz nbeams
+  extern double* machnum; //nx nz
   extern int* boxes; //nbeams nrays ncrossings 2
-  extern bool**** boxTrack;
-  extern double**** W_storage; //nbeams nx nz nrays
-  extern double** u_flow; //nx nz
-  extern double*** dkx; //nbeams nrays 2
-  extern double*** dkz; //nbeams nrays 2
-  extern double*** dkmag; //nbeams nrays 2
+  extern double* u_flow; //nx nz
+  extern double* dkx; //nbeams nrays 2
+  extern double* dkz; //nbeams nrays 2
+  extern double* dkmag; //nbeams nrays 2
 
   //Launch_Ray_XZ specific arrays (all have a length of nt)
   //CBET specific arrays
-  extern double*** W;//nx nz
-  extern double*** W_init;//nx nz
-  extern double*** W_new;//nx nz
-  extern double*** i_b;//nx nz
-  extern double*** i_b_prev;//nbeams nx nz
-  extern double*** i_b_new;//nx nz
-  extern double** wpe; //nx nz
-  extern double*** crossesz; //nbeams nrays ncrossings
-  extern double*** crossesx; //nbeams nrays ncrossings
-  extern int*** ints; //nbeams nrays ncrossings
+  extern double* W;//nx nz
+  extern double* W_init;//nx nz
+  extern double* W_new;//nx nz
+  extern double* i_b;//nx nz
+  extern double* i_b_prev;//nbeams nx nz
+  extern double* i_b_new;//nx nz
+  extern double* wpe; //nx nz
+  extern double* crossesz; //nbeams nrays ncrossings
+  extern double* crossesx; //nbeams nrays ncrossings
+  extern int* ints; //nbeams nrays ncrossings
   extern int iteration;
   //arrays used only for plotting
-  extern double** gain2arr;
-  extern double** gain1arr;
-  extern double** mag;
-  extern double** i_bplot;//nx nz
-  extern double** orderplot1; //nx nz
-  extern double** orderplot2; //nx nz
-  extern double** i_b1Error; //nx nz
+  extern double* gain2arr;
+  extern double* gain1arr;
+  extern double* mag;
+  extern double* i_bplot;//nx nz
+  extern double* orderplot1; //nx nz
+  extern double* orderplot2; //nx nz
+  extern double* i_b1Error; //nx nz
   extern double* convergeplot;//nx nz
-  extern double** i_b2Error;//nx nz
-  extern double** i_b_newplot;//nx nz
-  extern double** edenplot; //the array is eden/ncrit,  nx nz
-  extern double** edepplot; //nx nz
-  extern int** raytrace;//nx nz
-  extern double** ib_orig;//nx nz
-  extern int** anyInt;//nx nz
-  extern double** perturbation;//nx nz
+  extern double* i_b2Error;//nx nz
+  extern double* i_b_newplot;//nx nz
+  extern double* edenplot; //the array is eden/ncrit,  nx nz
+  extern double* edepplot; //nx nz
+  extern int* raytrace;//nx nz
+  extern double* ib_orig;//nx nz
+  extern int* anyInt;//nx nz
+  extern double* perturbation;//nx nz
   extern double* mult;//nbeams nrays ncrossings
   //SIMULATION CONSTANTS
   extern int printUpdates;

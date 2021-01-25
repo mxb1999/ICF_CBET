@@ -1,6 +1,5 @@
 #include "Trace_interface.hpp"
 
-
 using namespace std;
 //uses x0 and z0 arrays to initialize the ray positions, then launches via Launch_Ray_XZ()
 void trackRays()
@@ -23,15 +22,26 @@ void trackRays()
   //initializing arrays for beam 1
   span(phase_x,beam_min_z, beam_max_z, nrays);
   span(z0, beam_min_z, beam_max_z, nrays);
+  rayinit* raycoor = new rayinit[nrays*nbeams];
+  #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
   {
-    kx0[i] = 1.0;
+    raycoor[i].xinit = xmin-(dt/courant_mult*c*0.5);;
+    raycoor[i].zinit = z0[i] + offset-(dz/2)-(dt/courant_mult*c*0.5);//initial z position of ray
+    raycoor[i].kxinit = 1.0;
+    raycoor[i].kzinit = 0;
+    raycoor[i].beam = 0;
+    double absX = raycoor[i].xinit-xmin;
+    double absZ = raycoor[i].zinit-zmin;
+    int currX = (absX)/dx;
+    currX += ((raycoor[i].xinit-currX*dx) > 0.5);
+    int currZ = (absX)/dx;
+    currZ += ((raycoor[i].xinit-currX*dx) > 0.5);
+    raycoor[i].wpeinit = 0;
     kz0[i] = 0;
     pow_x[i] = exp(-1*pow(pow(phase_x[i]/sigma,2.0),4.0/2.0));
     phase_x[i] += offset;
     //Beam one lies along the z axis, x axis is constant
-    x0[i] = xmin-(dt/courant_mult*c*0.5);
-    z0[i] += offset-(dz/2)-(dt/courant_mult*c*0.5);//initial z position of ray
   }
   int finalts[nrays][nbeams];
   cout<<"Check 3 \n" << printUpdates;
@@ -44,12 +54,19 @@ void trackRays()
   beam = 0;
   //Loop to launch the rays for beam 1, parallelized using OpenMP
   //#pragma omp parallel for num_threads(threads)
-  for(int i = 0; i < nrays;i++)
+  double interpTerm[nrays];
+  #pragma omp parallel for num_threads(threads)
+  for(int i = 0; i < nrays; i++)
   {
-    double interpNum = interp(phase_x, pow_x, z0[i], nrays);
+    interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
+    raycoor[i].xinit = x0;
+
+  }
+  for(int i = 0; i < nrays*nbeams;i++)
+  {
+    
     #pragma omp atomic update
-    injected += uray_mult*interpNum;
-    launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i],uray_mult*interpNum,i,beam);
+    launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i],uray_multinterpNum*,i,beam);
   }
   //Reset the intial conditions for beam 2
   span(x0, beam_min_z, beam_max_z, nrays);
@@ -98,13 +115,6 @@ void updateIntersections()
   {
     cout << "Updating Rays Intersections" << endl;
   }
-  for(int i = 0; i < nx; i++)
-  {
-    for(int j = 0; j < nz; j++)
-    {
-      intersections[i][j] = 0;
-    }
-  }
   for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz; j++)
@@ -113,10 +123,10 @@ void updateIntersections()
       int s2 = 0;
       for(int q = 0; q < ncrossings;q++)
       {
-          s1 += (*vec4D(marked, 0, i, j, q, nx, nz, ncrossings) != 0);
-          s2 += (*vec4D(marked, 1, i, j, q, nx, nz, ncrossings) != 0);
+          s1 += (vec4D(marked, 0, i, j, q, nx, nz, ncrossings) != 0);
+          s2 += (vec4D(marked, 1, i, j, q, nx, nz, ncrossings) != 0);
       }
-      intersections[i][j] = s1*s2;
+      vec2DW(intersections,i,j,nz,s1*s2);
     }
   }
 }
@@ -129,18 +139,17 @@ void fillMarked()
     {
       for(int q = 0; q < ncrossings;q++)
       {
-        int tempx = *vec4D(boxes, i,j,q,0, nrays, ncrossings, 2);//[i][j][q][0]
-        int tempz = *vec4D(boxes, i,j,q,1, nrays, ncrossings, 2);//[i][j][q][1]
+        int tempx = vec4D(boxes, i,j,q,0, nrays, ncrossings, 2);//[i][j][q][0]
+        int tempz = vec4D(boxes, i,j,q,1, nrays, ncrossings, 2);//[i][j][q][1]
         if(tempx && tempz)
         {
           tempx--;
           tempz--;
-          int* temp = vec4D(marked, i, tempx,tempz,q, nx, nz, ncrossings);
-          *temp = j+1;//[i][tempx][tempz][q]
-          present[i][tempx][tempz]++;
+          vec4DW(marked, i, tempx,tempz,q, nx, nz, ncrossings, j+1);
+          vec3DI(present, i, tempx, tempz, nx,nz,1);
           if(i == 1 && j == 0)
           {
-            raypath[tempx][tempz] = 1;
+            vec2DW(raypath, tempx, tempz, nz,1);
           }
           
           //marked[(tempx*nz + tempz)*nbeams + i].push(j+1);
@@ -157,7 +166,7 @@ void fillMarked()
 void launchRays()
 {
   trackRays();
-  fillMarked();
+  //fillMarked();
 
-  updateIntersections();
+ // updateIntersections();
 }
