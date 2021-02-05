@@ -77,6 +77,46 @@
   {
     arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
+
+
+  template <typename T>
+  inline void vec4DWA(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
+  {
+    #pragma omp atomic write
+    arr[(((a)*d2+b)*d3+c)*d4+d] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+
+  template <typename T>
+  inline void vec3DWA(T* arr, int a, int b, int c, int d2, int d3, T val)
+  {
+    #pragma omp atomic write
+    arr[((a)*d2+b)*d3+c] = val;
+  }
+  template <typename T>
+  inline void vec2DWA(T* arr, int a, int b, int d2, T val)
+  {
+    #pragma omp atomic write
+    arr[(a)*d2+b] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+
+  template <typename T>
+  inline void vec4DIA(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
+  {
+    #pragma omp atomic update
+    arr[(((a)*d2+b)*d3+c)*d4+d] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  inline void vec3DIA(T* arr, int a, int b, int c, int d2, int d3, T val)
+  {
+    #pragma omp atomic update
+    arr[((a)*d2+b)*d3+c] += val;
+  }
+  template <typename T>
+  inline void vec2DIA(T* arr, int a, int b, int d2, T val)
+  {
+    #pragma omp atomic update
+    arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
     //Functions
   extern void initialize();
   extern void launchRays();

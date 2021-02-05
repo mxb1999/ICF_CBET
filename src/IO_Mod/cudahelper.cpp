@@ -1,4 +1,4 @@
-#include "GPU/cuda_help.h"
+#include "GPU/cuda_help.hpp"
 
 
 //GPU IO handlers

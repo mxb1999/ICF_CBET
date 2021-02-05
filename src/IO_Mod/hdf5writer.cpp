@@ -56,10 +56,14 @@ void writeArr(void* arr, int type, H5File* store, string name, int dimnum, int* 
   {
     DataSpace* arrspace = new DataSpace(dimnum, dims);    //Allocate the memory in an array space in the .hdf file
     DataSet* arrData = new DataSet(store->createDataSet(name, PredType::NATIVE_DOUBLE, *arrspace));    //write data in the case that arr is simply an int
-    double* copy = new double[prod];//declare a new 1D array to be written to temporarily
+    //double* copy = new double[prod];//declare a new 1D array to be written to temporarily
     //Copies arr to copy using a 1D indexing scheme based on the number of dimensions
-    switch(dimnum)
+    double* arrcast = (double*)arr;
+
+    /*switch(dimnum)
     {
+          double* arrp;
+    double* copyp;
       //1D array
       case 1:
       {
@@ -77,13 +81,11 @@ void writeArr(void* arr, int type, H5File* store, string name, int dimnum, int* 
             copy[i*dimlist[1]+j] = arrcast[i][j];
           }
         }
-        arrData->write(copy, PredType::NATIVE_DOUBLE);
         break;
       }
       //3D array
       case 3:
       {
-        double*** arrcast = (double***)arr;
         for(int i = 0; i < dimlist[0];i++)
         {
           for(int j = 0; j < dimlist[1];j++)
@@ -117,11 +119,11 @@ void writeArr(void* arr, int type, H5File* store, string name, int dimnum, int* 
         arrData->write(copy, PredType::NATIVE_DOUBLE);
         break;
       }
-    }
+    }*/
+    arrData->write(arrcast, PredType::NATIVE_DOUBLE);
     arrData->close();
     arrspace->close();
     //cout << name << endl;
-    delete [] copy;
   }else
   {
     //Same as above, just with the int datatype instead of double
@@ -130,8 +132,9 @@ void writeArr(void* arr, int type, H5File* store, string name, int dimnum, int* 
     plist.setFillValue(PredType::NATIVE_INT, &fill);
     DataSpace arrspace(dimnum, dims);
     DataSet* arrData = new DataSet(store->createDataSet(name, PredType::NATIVE_INT, arrspace,plist));
-    int* copy = new int[prod];
-    switch(dimnum)
+    int* arrcast = (int*)arr;
+    //int* copy = new int[prod];
+    /*switch(dimnum)
     {
       case 1:
       {
@@ -183,51 +186,41 @@ void writeArr(void* arr, int type, H5File* store, string name, int dimnum, int* 
             }
           }
         }
-        arrData->write(copy, PredType::NATIVE_INT);
         break;
       }
     }
+    */
+    arrData->write(arrcast, PredType::NATIVE_INT);
     arrData->close();
     arrspace.close();
-
   }
 }
 void writePlotArrays()
 {
     //Arrays to be plotted via Python
-    i_b_newplot = new double*[nx];
-    edepplot = new double*[nz];
-    edenplot = new double*[nz];
-    raytrace = new int*[nx];
-    ib_orig = new double*[nx];
-    anyInt = new int*[nx];
-    perturbation = new double*[nx];
-    for(int i = 0; i < nz;i++)
-    {
-      i_b_newplot[i] = new double[nz];
-      edepplot[i] = new double[nx]{0.0};
-      edenplot[i] = new double[nx]{0.0};
-      perturbation[i] = new double[nz];
-      raytrace[i] = new int[nz]{0};
-      ib_orig[i] = new double[nz]{0.0};
-      anyInt[i] = new int[nz];
-    }
+    i_b_newplot = new double[nx*nz]{0.0};
+    edepplot = new double[nx*nz]{0.0};
+    edenplot = new double[nx*nz]{0.0};
+    raytrace = new int[nx*nz]{0};
+    ib_orig = new double[nx*nz]{0.0};
+    anyInt = new int[nx*nz];
+    perturbation = new double[nx*nz];
     for(int i = 0; i < nx;i++)
     {
       for(int j = 0; j < nz;j++)
       {
-        edenplot[i][j] = eden[i][j]/ncrit;
-        i_b_newplot[i][j] = 8.53e-10*sqrt(fmax(1.0e-10,i_b_new[0][i][j])+fmax(1.0e-10,i_b_new[1][i][j]))*(1.053/3.0);
-        perturbation[i][j] = fmax(W_new[0][i][j], W_new[1][i][j]) - sqrt(1.0-eden[i][j]/ncrit)/double(rays_per_zone);
-        raytrace[i][j] = present[1][i][j];//+present[1][i][j];
-        ib_orig[i][j] = 8.53e-10*sqrt(edep[0][i][j]+edep[1][i][j]+1.0e-10)*(1.053/3.0);
-        if(intersections[i][j] > 0)
+        vec2DW(edenplot,i,j,nz, vec2D(eden,i,j,nz)/ncrit);
+        vec2DW(i_b_newplot,i,j,nz, 8.53e-10*sqrt(fmax(1.0e-10,vec3D(i_b_new,0,i,j,nx,nz))+fmax(1.0e-10,vec3D(i_b_new,1,i,j,nx,nz)))*(1.053/3.0));
+        vec2DW(perturbation,i,j,nz, fmax(vec3D(W_new,0,i,j,nx,nz), vec3D(W_new,1,i,j,nx,nz)) - sqrt(1.0-vec2D(eden,i,j,nz)/ncrit)/double(rays_per_zone));
+        vec2DW(raytrace,i,j,nz, vec3D(present,1,i,j,nx,nz));//+vec3D(present,0,i,j,nx,nz);
+        vec2DW(ib_orig,i,j,nz, 8.53e-10*sqrt(vec3D(edep,0,i,j,nx,nz)+vec3D(edep,1,i,j,nx,nz)+1.0e-10)*(1.053/3.0));
+        if(vec2D(intersections,i,j,nz)> 0)
         {
-          anyInt[i][j] = 1;
+          vec2DW(anyInt,i,j,nz, 1);
         }
         for(int m = 0;m<nbeams;m++)
         {
-          edepplot[i][j]+=edep[m][i][j];
+          vec2DI(edepplot,i,j,nz,vec3D(edep,m,i,j,nx,nz));
         }
       }
     }
@@ -255,8 +248,8 @@ void updateH5()
   {
     for(int j = 0; j < ncrossings; j++)
     {
-      int boxx = *vec4D(boxes, 0,i,j,0,nrays,ncrossings,2);
-      int boxz = *vec4D(boxes, 0,i,j,1,nrays,ncrossings,2);
+      int boxx = vec4D(boxes, 0,i,j,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes, 0,i,j,1,nrays,ncrossings,2);
       if(!boxx || !boxz)
       {
         break;
@@ -284,13 +277,13 @@ void updateH5()
   writeArr(raypath, 1, store, "/raypath", 2, new int[2]{nx,nz});//total intensity deposited
   writeArr(raytrace, 1, store, "/raydist", 2, new int[2]{nx,nz});//all ray paths found
   writeArr(intersections, 0, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
-  writeArr(W_new[0], 0, store, "/new_energy1", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 1
-  writeArr(W_new[1], 0, store, "/new_energy2", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
-  writeArr(W[0], 0, store, "/original_energy1", 2, new int[2]{nx,nz});//original energy deposited
-  writeArr(W[1], 0, store, "/original_energy2", 2, new int[2]{nx,nz});//original energy deposited
+  writeArr(W_new, 0, store, "/new_energy1", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 1
+  writeArr(W_new+(nx*nz), 0, store, "/new_energy2", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
+  writeArr(W, 0, store, "/original_energy1", 2, new int[2]{nx,nz});//original energy deposited
+  writeArr(W+(nx*nz), 0, store, "/original_energy2", 2, new int[2]{nx,nz});//original energy deposited
   writeArr(anyInt, 1, store, "/nonZero", 2, new int[2]{nx,nz});//stores any location where a ray has been as one
-  writeArr(i_b[0], 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
-  writeArr(i_b[1], 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
+  writeArr(i_b, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
+  writeArr(i_b+(nx*nz), 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(multArr, 0, store, "/gain1", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(gain2arr, 0, store, "/gain2", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET

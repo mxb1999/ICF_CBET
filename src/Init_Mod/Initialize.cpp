@@ -131,7 +131,7 @@ void initialize()
   omega = 2*pi*freq;	// frequency of light, in rad/s
   ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));
   //dynamic allocation (using pointers to access arrays so the stack is not filled)
-  intersections = new double[nx*nz]; //nx nz
+  intersections = new int[nx*nz]; //nx nz
   marked = new int[nx*nz*nbeams*numstored]{0}; //nx nz nrays nbeams
   dedendx = new double[nx*nz]; //nx nz
   dedendz = new double[nx*nz]; //nx nz

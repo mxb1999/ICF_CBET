@@ -13,10 +13,10 @@ void trackRays()
   cout<<"Check 2\n";
   int beam;
   //tracking arrays
-  double x0[nrays];//initial x position of ray
-  double z0[nrays];//initial z position of ray
-  double kx0[nrays];//initial x velocity of ray
-  double kz0[nrays];//initial z velocity of ray
+  double x0[nrays*nbeams];//initial x position of ray
+  double z0[nrays*nbeams];//initial z position of ray
+  double kx0[nrays*nbeams];//initial x velocity of ray
+  double kz0[nrays*nbeams];//initial z velocity of ray
   double phase_x[nrays];//phase of ray
   double pow_x[nrays];//power delivery of ray
   //initializing arrays for beam 1
@@ -54,30 +54,43 @@ void trackRays()
   beam = 0;
   //Loop to launch the rays for beam 1, parallelized using OpenMP
   //#pragma omp parallel for num_threads(threads)
-  double interpTerm[nrays];
+  double interpTerm[nrays*nbeams];
+  span(x0 + nrays, beam_min_z, beam_max_z, nrays);
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
   {
     interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
-    raycoor[i].xinit = x0;
-
+    raycoor[i].kxinit = 0;
+    raycoor[i].kzinit = 1.0;
+    raycoor[i].beam = 1;
+    raycoor[i].xinit = x0[i] - (dx/2)+(dt/courant_mult*c*0.5);
+    raycoor[i].zinit = zmin-(dt/courant_mult*c*0.5);
+    interpTerm[i+nrays] = interp(phase_x, pow_x, z0[i], nrays);
+    raycoor[i+nrays].xinit = x0[i] - (dx/2)+(dt/courant_mult*c*0.5);
+    raycoor[i+nrays].zinit = zmin-(dt/courant_mult*c*0.5);
+    interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
+    interpTerm[i+nrays] = interp(phase_x, pow_x, z0[i], nrays);
+    //phase_x[i] +=offset;
   }
+ // for(int i = nrays; i < nrays*2; i++)
+  //{
+  //  kx0[i] = 0.0;
+ //   kz0[i] = 1.0;
+  //  x0[i] -= x0[i] (dx/2)+(dt/courant_mult*c*0.5);
+ //   z0[i] = zmin-(dt/courant_mult*c*0.5);
+ //   //phase_x[i] -= offset;
+ // }
+  rayLaunch<<<1024,512>>>(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays);
   for(int i = 0; i < nrays*nbeams;i++)
   {
-    
-    #pragma omp atomic update
-    launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i],uray_multinterpNum*,i,beam);
+    beam = i/nrays;
+    int rnum = i%nrays;
+    printf("%d %d %d\n", beam, rnum, nrays);
+    launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i],uray_mult*interpTerm[i],i%nrays,beam);
   }
   //Reset the intial conditions for beam 2
-  span(x0, beam_min_z, beam_max_z, nrays);
-  for(int i = 0; i < nrays; i++)
-  {
-    kx0[i] = 0.0;
-    kz0[i] = 1.0;
-    x0[i] -= (dx/2)+(dt/courant_mult*c*0.5);
-    z0[i] = zmin-(dt/courant_mult*c*0.5);
-    phase_x[i] -= offset;
-  }
+  
+  
 
   beam = 1;
 
@@ -86,7 +99,7 @@ void trackRays()
     cout << "Launching Beam 2" << endl;
   }
   cout<<"Check 4\n";
-
+/*
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays;i++)
@@ -98,7 +111,7 @@ void trackRays()
     injected += uray_mult*interpNum;
     launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i], uray_mult*interpNum, i,beam);
   }
-
+*/
   if(printUpdates)
   {
     cout << "Finished Launching Rays" << endl;

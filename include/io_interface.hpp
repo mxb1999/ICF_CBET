@@ -17,9 +17,10 @@
       short numProc;//number of cards in system
       char* arch;//architecture generation number, used for compilation and debugging
     public:
-      void* gpuMalloc(size_t size, int direction);
-      void gpuMemcpy(void* device, void* host, size_t size, int direction);
-      void* deviceConstTransfer(void** hostP, void** devP, size_t size);
+      void* gpuMalloc(size_t size, int direction);//wrapper function for GPU memory allocation
+      void gpuMemcpy(void* device, void* host, size_t size, int direction);//wrapper function for GPU memcpy functionality
+      void* deviceConstTransfer(void** hostP, void** devP, size_t size);//wrapper function for GPU 
+     // void
 
   };
   static int gputype;//stores whether the GPU is utilizing CUDA or OpenCL  //TO BE COMPLETED LATER
@@ -60,8 +61,6 @@
   
   */
   //GPU IO handlers
-  extern int GPUMemCpy(gconfig* gpu, void* dest, void* source, size_t size, int direction);//allocate memory on gpui
-  extern int GPUAlloc(gconfig* gpu, void* p, size_t size);//allocate memory on gpu in pointer p
   extern int GPUTrace();//GPU wrapper function for trace GPU function
   extern int GPUCBET();//GPU wrapper function for CBET GPU calls
   extern void updateH5();//Export simulation data to HDF5 file
