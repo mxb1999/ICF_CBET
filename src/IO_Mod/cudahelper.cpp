@@ -23,13 +23,15 @@ void CGPUDataTrans(void** hostP, void** deviceP, size_t* sizes, int n, int dir)/
         return;
     }
     //for each element in hostP and deviceP, copy data from host to device
-    if(dir = 0)
+    if(dir == 0)
     {
         for(int i = 0; i < n; i++)
         {
+                        printf("Help me1 \n");
+
             void* currH = hostP[i];//host pointer
             void* currD = deviceP[i];//device pointer
-            if(!currH || !currD)//returns if arrays are different sizes or if variable n is incorrect, prevents segfaults
+            if(!currH)//returns if arrays are different sizes or if variable n is incorrect, prevents segfaults
             {
                 printf("Memory Transfer Error: incorrect size information\n");
                 exit(0);
@@ -45,7 +47,8 @@ void CGPUDataTrans(void** hostP, void** deviceP, size_t* sizes, int n, int dir)/
             void* currD = deviceP[i];
             if(!currH || !currD)//returns if arrays are different sizes or if variable n is incorrect, prevents segfaults
             {
-                printf("Memory Transfer Error: incorrect size information\n");
+
+                printf("Memory Transfer Error: incorrect size information: %d, %d :: %p %p at %d\n",!currH,!currD, currH, currD, i);
                 exit(0);
             }
             cudaMemcpy(currH, currD, sizes[i], cudaMemcpyDeviceToHost);

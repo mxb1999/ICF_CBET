@@ -8,44 +8,44 @@ from tkinter import *
 
 
 implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read mode
-
-##Initial output arrays, the 'highlights' if you will: electric field, electron density gradient, machnum gradient, density perturbation
-xarr = np.array(implSim['/x'][:]);
-zarr = np.array(implSim['/z'][:]);
-eden = np.array(implSim['/eden_ncrit'][:]);
-field = np.array(implSim['/Original_Field'][:]);
-mach = np.array(implSim['/machnum'][:]);
-perturb = np.array(implSim['/density_perturbation'][:]);
-#convert to microns
-xarr*=10000;
-zarr*=10000;
-fig, axs = plt.subplots(2, 2)
-gs = fig.add_gridspec(2, 2, hspace=10, wspace=10000)
-cbe = axs[0, 0].contourf(xarr,zarr,eden, 100, cmap='nipy_spectral')
-axs[0, 0].set_title('Density Profile')
-fig.colorbar(cbe, ax=axs[0,0]);
-
-cbf = axs[0, 1].contourf(xarr,zarr,field, 100, cmap='nipy_spectral')
-axs[0, 1].set_title('Field Amplitude')
-fig.colorbar(cbf, ax=axs[0,1]);
-
-cbm = axs[1, 0].contourf(xarr,zarr,mach, 100, cmap='nipy_spectral')
-axs[1, 0].set_title('Mach Number')
-fig.colorbar(cbm, ax = axs[1,0]);
-
-cbp = axs[1, 1].contourf(xarr,zarr,perturb, 100, cmap='nipy_spectral')
-axs[1, 1].set_title('Density Perturbation')
-fig.colorbar(cbp, ax = axs[1,1]);
-#Set the axes labels
-for ax in axs.flat:
-    ax.set(xlabel='x (\u03BCm)', ylabel='z (\u03BCm)')
-fig.tight_layout()
-plt.show();
-# Hide x labels and tick labels for top plots and y ticks for right plots.
-for ax in axs.flat:
-    ax.label_outer()
-
-#open a Tkinter window
+#
+###Initial output arrays, the 'highlights' if you will: electric field, electron density gradient, machnum gradient, density perturbation
+#xarr = np.array(implSim['/x'][:]);
+#zarr = np.array(implSim['/z'][:]);
+#eden = np.array(implSim['/eden_ncrit'][:]);
+#field = np.array(implSim['/Original_Field'][:]);
+#mach = np.array(implSim['/machnum'][:]);
+#perturb = np.array(implSim['/density_perturbation'][:]);
+##convert to microns
+#xarr*=10000;
+#zarr*=10000;
+#fig, axs = plt.subplots(2, 2)
+#gs = fig.add_gridspec(2, 2, hspace=10, wspace=10000)
+#cbe = axs[0, 0].contourf(xarr,zarr,eden, 100, cmap='nipy_spectral')
+#axs[0, 0].set_title('Density Profile')
+#fig.colorbar(cbe, ax=axs[0,0]);
+#
+#cbf = axs[0, 1].contourf(xarr,zarr,field, 100, cmap='nipy_spectral')
+#axs[0, 1].set_title('Field Amplitude')
+#fig.colorbar(cbf, ax=axs[0,1]);
+#
+#cbm = axs[1, 0].contourf(xarr,zarr,mach, 100, cmap='nipy_spectral')
+#axs[1, 0].set_title('Mach Number')
+#fig.colorbar(cbm, ax = axs[1,0]);
+#
+#cbp = axs[1, 1].contourf(xarr,zarr,perturb, 100, cmap='nipy_spectral')
+#axs[1, 1].set_title('Density Perturbation')
+#fig.colorbar(cbp, ax = axs[1,1]);
+##Set the axes labels
+#for ax in axs.flat:
+#    ax.set(xlabel='x (\u03BCm)', ylabel='z (\u03BCm)')
+#fig.tight_layout()
+#plt.show();
+## Hide x labels and tick labels for top plots and y ticks for right plots.
+#for ax in axs.flat:
+#    ax.label_outer()
+#
+##open a Tkinter window
 window = tk.Tk()
 templist = list(implSim.keys())#Fill a list with the titles of the quantities being plotted
 datalist = []

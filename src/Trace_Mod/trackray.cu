@@ -189,7 +189,6 @@ __global__ void rayLaunchKernel()
         double a4 = dl*dm;			// red 		: (x+1, z+1)
         if((xadd != xadd) && (zadd != zadd))
         {
-          printf("NaN Error: Error in Grid Interpolation \n");
           break;
         }
         vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a1*increment);	// blue
@@ -273,11 +272,12 @@ void LaunchCUDARays(GConfig gpu,rayinit* rays)
 { int n = 0;
   hostP[0] = rays;
   sizes[0] = nbeams*nrays*sizeof(rayinit);
-  for(int* i = (int*)hostP; i != NULL; i++)
+  for(double* i = (double*)hostP; *i != 0; i++)
   {
     n++;
   }
-  printf("n %d\n",n);
-  gpu.deviceDataTransfer(hostP, devP, sizes, n, 0);
+  gpu.deviceDataTransfer(hostP, devP, sizes, 47, 0);
   rayLaunchKernel<<<T,B>>>();
+  gpu.deviceDataTransfer(hostP, devP, sizes, 47, 1);
+  for(int i = 0; i < )
 }

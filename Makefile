@@ -62,9 +62,9 @@ $(ODIR)/%.o:  $(IO_DIR)/%.cpp#Compile instructions for I/O files
 $(CU_ODIR)/%.o: $(TRACE_DIR)/%.cu  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
 	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
 
-
-implSim: $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ) #Program compile
-	$(NV) -dlink $(NVFLAGS) $(CU_OBJ) -o Bin/gpu.o $(LIBS)
+FILEGROUP = $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ)
+implSim:  $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ) $(CUOBJ)#Program compile
+	$(NV) -dlink $(NVFLAGS) $(CUOBJ) -o Bin/gpu.o $(LIBS)
 	$(H5)  $(CPPFLAGS)   $^ Bin/gpu.o -o $@ $(LIBS)
 
 .phony: clean
@@ -91,3 +91,9 @@ deb install:
 	apt-get install python3-numpy
 	apt-get install python3-tk
 	apt-get install libomp-dev
+
+.phony:run
+
+run:
+	make
+	./implSim 1

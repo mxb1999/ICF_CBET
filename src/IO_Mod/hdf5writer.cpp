@@ -214,8 +214,13 @@ void writePlotArrays()
       for(int j = 0; j < nz;j++)
       {
         vec2DW(edenplot,i,j,nz, vec2D(eden,i,j,nz)/ncrit);
+
+        if(calcCBET)
+        {
         vec2DW(i_b_newplot,i,j,nz, 8.53e-10*sqrt(fmax(1.0e-10,vec3D(i_b_new,0,i,j,nx,nz))+fmax(1.0e-10,vec3D(i_b_new,1,i,j,nx,nz)))*(1.053/3.0));
         vec2DW(perturbation,i,j,nz, fmax(vec3D(W_new,0,i,j,nx,nz), vec3D(W_new,1,i,j,nx,nz)) - sqrt(1.0-vec2D(eden,i,j,nz)/ncrit)/double(rays_per_zone));
+
+        }
         vec2DW(raytrace,i,j,nz, vec3D(present,1,i,j,nx,nz)+vec3D(present,0,i,j,nx,nz));//+vec3D(present,0,i,j,nx,nz);
         vec2DW(ib_orig,i,j,nz, 8.53e-10*sqrt(vec3D(edep,0,i,j,nx,nz)+vec3D(edep,1,i,j,nx,nz)+1.0e-10)*(1.053/3.0));
         if(vec2D(intersections,i,j,nz)> 0)
@@ -267,26 +272,13 @@ void updateH5()
   printf("Check 1\n");
   fflush(stdout);
   //Core output arrays
+  if(calcCBET)
+  {
   writeArr(ib_orig, 0, store, "/Original_Field", 2, new int[2]{nx,nz});//original electric field
   writeArr(i_b_newplot, 0, store, "/New_Field", 2, new int[2]{nx,nz});//Post-CBET electric field
-  writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
-  writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
-  writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
-  writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
-  writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
   writeArr(perturbation, 0, store, "/density_perturbation", 2, new int[2]{nx,nz});//electron density pertubation (or indicative of it)
-  writeArr(edepplot, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//total intensity deposited
-
-  //Arrays useful for debugging
-  //writeArr(orderplot1, 0, store, "/updated", 2, new int[2]{nx,nz});//stores all updated ray locations
-  writeArr(raypath, 1, store, "/raypath", 2, new int[2]{nx,nz});//total intensity deposited
-
-  writeArr(raytrace, 1, store, "/raydist", 2, new int[2]{nx,nz});//all ray paths found
-
-  writeArr(intersections, 1, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
-      printf("Check 2\n");
-  fflush(stdout);
   writeArr(W_new, 0, store, "/new_energy1", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 1
+
   writeArr(W_new+(nx*nz), 0, store, "/new_energy2", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
   writeArr(W, 0, store, "/original_energy1", 2, new int[2]{nx,nz});//original energy deposited
   writeArr(W+(nx*nz), 0, store, "/original_energy2", 2, new int[2]{nx,nz});//original energy deposited
@@ -298,6 +290,23 @@ void updateH5()
   writeArr(gain2arr, 0, store, "/gain2", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
+  }
+  writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
+  writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
+  writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
+  writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
+  writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
+  writeArr(edepplot, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//total intensity deposited
+
+  //Arrays useful for debugging
+  //writeArr(orderplot1, 0, store, "/updated", 2, new int[2]{nx,nz});//stores all updated ray locations
+  writeArr(raypath, 1, store, "/raypath", 2, new int[2]{nx,nz});//total intensity deposited
+
+  writeArr(raytrace, 1, store, "/raydist", 2, new int[2]{nx,nz});//all ray paths found
+
+  writeArr(intersections, 1, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
+      printf("Check 2\n");
+  fflush(stdout);
  
   store->close();//close hdf file
   if(printUpdates)

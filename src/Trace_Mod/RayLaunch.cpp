@@ -27,6 +27,8 @@ void trackRays()
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
   {
+      cout<<"Check 4\n";
+
     raycoor[i].xinit = xmin-(dt/courant_mult*c*0.5);;
     raycoor[i].zinit = z0[i] + offset-((dz/2)+(dt/courant_mult*c*0.5));//initial z position of ray
     raycoor[i].kxinit = 1.0;
@@ -59,6 +61,8 @@ void trackRays()
   //#pragma omp parallel for num_threads(threads)
   for(int i = nrays; i < nrays*2; i++)
   {
+      cout<<"Check 4\n";
+
     raycoor[i].kxinit = 0;
     raycoor[i].kzinit = 1.0;
     raycoor[i].beam = 1;
@@ -75,11 +79,8 @@ void trackRays()
   switch(rtx2070.getType())
   {
     case CUDA:
+      cout << "Launching Beam 1 via CUDA" << endl;
       LaunchCUDARays(rtx2070,raycoor);
-      if(printUpdates)
-      {
-        cout << "Launching Beam 2" << endl;
-      }
       return;
       break;
     case OPENCL:
@@ -95,7 +96,7 @@ void trackRays()
     double kzinit = raycoor[i].kzinit;
     beam = raycoor[i].beam;
     double urayinit = raycoor[i].urayinit;
-    //printf("%f\n", raycoor[i].xinit);
+    printf("%f\n", raycoor[i].xinit);
 
     launch_ray_XZ(raycoor[i],rnum);
   }
@@ -105,7 +106,6 @@ void trackRays()
   {
     cout << "Launching Beam 2" << endl;
   }
-  cout<<"Check 4\n";
 
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
