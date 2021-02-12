@@ -1,11 +1,10 @@
 #include "Trace_interface.hpp"
-
+#include "parallelConfig.hpp"
 using namespace std;
 //uses x0 and z0 arrays to initialize the ray positions, then launches via Launch_Ray_XZ()
 void trackRays()
 {
-  cout<<"Check\n";
-
+  GConfig rtx2070(CUDA);// = new GConfig(CUDA);
   if(printUpdates)
   {
     cout << "Tracking Rays" << endl;
@@ -23,11 +22,13 @@ void trackRays()
   span(phase_x,beam_min_z, beam_max_z, nrays);
   span(z0, beam_min_z, beam_max_z, nrays);
   rayinit* raycoor = new rayinit[nrays*nbeams];
+    double interpTerm[nrays*nbeams];
+
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
   {
     raycoor[i].xinit = xmin-(dt/courant_mult*c*0.5);;
-    raycoor[i].zinit = z0[i] + offset-(dz/2)-(dt/courant_mult*c*0.5);//initial z position of ray
+    raycoor[i].zinit = z0[i] + offset-((dz/2)+(dt/courant_mult*c*0.5));//initial z position of ray
     raycoor[i].kxinit = 1.0;
     raycoor[i].kzinit = 0;
     raycoor[i].beam = 0;
@@ -54,44 +55,50 @@ void trackRays()
   beam = 0;
   //Loop to launch the rays for beam 1, parallelized using OpenMP
   //#pragma omp parallel for num_threads(threads)
-  double interpTerm[nrays*nbeams];
   span(x0 + nrays, beam_min_z, beam_max_z, nrays);
-  #pragma omp parallel for num_threads(threads)
-  for(int i = 0; i < nrays; i++)
+  //#pragma omp parallel for num_threads(threads)
+  for(int i = nrays; i < nrays*2; i++)
   {
-    interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
     raycoor[i].kxinit = 0;
     raycoor[i].kzinit = 1.0;
     raycoor[i].beam = 1;
-    raycoor[i].xinit = x0[i] - (dx/2)+(dt/courant_mult*c*0.5);
+    raycoor[i].xinit = x0[i] - ((dx/2)+(dt/courant_mult*c*0.5));
     raycoor[i].zinit = zmin-(dt/courant_mult*c*0.5);
-    interpTerm[i+nrays] = interp(phase_x, pow_x, z0[i], nrays);
-    raycoor[i+nrays].xinit = x0[i] - (dx/2)+(dt/courant_mult*c*0.5);
-    raycoor[i+nrays].zinit = zmin-(dt/courant_mult*c*0.5);
+    raycoor[i].urayinit =  interp(phase_x, pow_x, raycoor[i].xinit, nrays)*uray_mult;
+    raycoor[i-nrays].urayinit =  interp(phase_x, pow_x, raycoor[i-nrays].zinit, nrays)*uray_mult;
     interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
-    interpTerm[i+nrays] = interp(phase_x, pow_x, z0[i], nrays);
     //phase_x[i] +=offset;
   }
- // for(int i = nrays; i < nrays*2; i++)
-  //{
-  //  kx0[i] = 0.0;
- //   kz0[i] = 1.0;
-  //  x0[i] -= x0[i] (dx/2)+(dt/courant_mult*c*0.5);
- //   z0[i] = zmin-(dt/courant_mult*c*0.5);
- //   //phase_x[i] -= offset;
- // }
-  rayLaunch<<<1024,512>>>(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays);
+  //rayLaunch<<<1024,512>>>(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays);
+
+  //Reset the intial conditions for beam 2
+  switch(rtx2070.getType())
+  {
+    case CUDA:
+      LaunchCUDARays(rtx2070,raycoor);
+      if(printUpdates)
+      {
+        cout << "Launching Beam 2" << endl;
+      }
+      return;
+      break;
+    case OPENCL:
+      break;
+  }
+  
   for(int i = 0; i < nrays*nbeams;i++)
   {
-    beam = i/nrays;
     int rnum = i%nrays;
-    printf("%d %d %d\n", beam, rnum, nrays);
-    launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i],uray_mult*interpTerm[i],i%nrays,beam);
-  }
-  //Reset the intial conditions for beam 2
-  
-  
+    double xinit = raycoor[i].xinit;
+    double zinit = raycoor[i].zinit;
+    double kxinit = raycoor[i].kxinit;
+    double kzinit = raycoor[i].kzinit;
+    beam = raycoor[i].beam;
+    double urayinit = raycoor[i].urayinit;
+    //printf("%f\n", raycoor[i].xinit);
 
+    launch_ray_XZ(raycoor[i],rnum);
+  }
   beam = 1;
 
   if(printUpdates)
@@ -99,19 +106,10 @@ void trackRays()
     cout << "Launching Beam 2" << endl;
   }
   cout<<"Check 4\n";
-/*
+
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
-  for(int i = 0; i < nrays;i++)
-  {
-    z0[i] = zmin-(dt/courant_mult*c*0.5);
-    x0[i] += (dx/2)-(dt/courant_mult*c*0.5);
-    double interpNum = interp(phase_x, pow_x, x0[i], nrays);
-    #pragma omp atomic update
-    injected += uray_mult*interpNum;
-    launch_ray_XZ(x0[i],z0[i],kx0[i],kz0[i], uray_mult*interpNum, i,beam);
-  }
-*/
+
   if(printUpdates)
   {
     cout << "Finished Launching Rays" << endl;
@@ -123,7 +121,7 @@ void trackRays()
 //updating the intersections array to account for array intersections found via marked
 void updateIntersections()
 {
-
+  //intersections = new int
   if(printUpdates)
   {
     cout << "Updating Rays Intersections" << endl;
@@ -179,7 +177,14 @@ void fillMarked()
 void launchRays()
 {
   trackRays();
-  //fillMarked();
+  fillMarked();
 
- // updateIntersections();
+  updateIntersections();
+  for(int i= 0; i< nx+2; i++)
+  {
+    for(int j= 0; j< nz+2; j++)
+    {
+      printf("Edep: %f %d %d\n",vec3D(edep,1,i,j,nx+2, nz+2),i,j);
+    }
+  }
 }

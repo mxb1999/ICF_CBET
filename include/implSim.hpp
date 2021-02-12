@@ -120,8 +120,7 @@
     //Functions
   extern void initialize();
   extern void launchRays();
-  extern void launch_ray_XZ(double x_init, double z_init, double kx_init, double kz_init,double urayinit, int raynum, int beam);
-  extern void cbet();
+ extern void cbet();
   extern void updateH5();
   typedef struct Intersection Intersection;
   typedef struct Ray Ray;
@@ -272,14 +271,14 @@
   extern double dt;
 
   //Fundamental Constants
-  const double sigma = 1.7e-4;
-  const double e0 =8.85418782e-12;
-  const double me =9.10938356e-31;
-  const double pi =3.14159265359;
-  const double kb = 1.3806485279e-16;   //Boltzmann constant in erg/K
-  const double kb2 = 1.3806485279e-23;   //Boltzmann constant in J/K
-  const double ec = 1.60217662e-19;
-  const double c = 29979245800.0;              // Speed of light in cm/s
+  extern  double sigma; 
+  extern  double e0;
+  extern  double me; 
+  extern  double pi;
+  extern  double kb;  //Boltzmann constant in erg/K
+  extern  double kb2;   //Boltzmann constant in J/K
+  extern  double ec;
+  extern  double c;         // Speed of light in cm/s
 
   /*const double Ti_eV = 1.0e3;
   const double iaw = 0.2;                      // ion-acoustic wave energy-damping rate (nu_ia/omega_s)!!

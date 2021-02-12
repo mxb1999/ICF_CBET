@@ -89,5 +89,14 @@ double* perturbation;//nx nz
   //derivative values
   //double mi_kg,mi,uray_mult,dt,dx,dz,freq,omega,ncrit;
   //int nrays,nt,numstored,ncrossings;
+  //Fundamental Constants
+   double sigma = 1.7e-4;
+   double e0 =8.85418782e-12;
+   double me =9.10938356e-31;
+   double pi =3.14159265359;
+   double kb= 1.3806485279e-16;   //Boltzmann constant in erg/K
+   double kb2= 1.3806485279e-23;   //Boltzmann constant in J/K
+   double ec= 1.60217662e-19;
+   double c= 29979245800.0;              // Speed of light in cm/s
 
 #endif

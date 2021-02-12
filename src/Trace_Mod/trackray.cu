@@ -2,36 +2,35 @@
 #include <stdlib.h>
 #include "Trace_interface.hpp"
 #include "io_interface.hpp"
- 
-
-
+#include "cuda_help.hpp"
+#include "cuda_var_init.hpp"
+#define MAX(i,j) ((i > j) ? i : j)
+#define MIN(i,j) ((i < j) ? i : j)
 
 //initializing necessary arrays for the calculation
-__global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays)
+__global__ void rayLaunchKernel()
 {
   int raynum = blockDim.x*blockIdx.x+threadIdx.x;
-  if(raynum >= nrays)
+  if(raynum >= nrays_cu)
   {
     return;
   }
-  rayinit thisInit = init[raynum];
-  double xinit = thisInit.xinit;
-  double zinit = thisInit.zinit;
+  rayinit thisInit = *((rayinit*)rays_cu + raynum);
+  //double xinit = thisInit.xinit;
+  //double zinit = thisInit.zinit;
   double kxinit = thisInit.kxinit;
   double kzinit = thisInit.kzinit;
   int beam = thisInit.beam;
-  double edeninit = thisInit.edeninit;
-  double wpeInit = thisInit.wpeInit;
   //Launch_Ray_XZ Array Declaration
   int thisx = 0;
   int thisz = 0;
   int thisx_0 = 0;
   int thisz_0 = 0;
-  double uray;
-  int markingxprev;// = new double[nt]{0.0};
-  int markingzprev;// = new double[nt]{0.0};
-  int markingx;// = new double[nt]{0.0};
-  int markingz;
+  //double uray;
+  //int //markingxprev;// = new double[nt]{0.0};
+  //int //markingzprev;// = new double[nt]{0.0};
+  //int //markingx;// = new double[nt]{0.0};
+  //int //markingz;
   double myx;
   double myz;
   double myvx;
@@ -42,9 +41,9 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
   double myvzprev;
 
   //determining the initial x grid index within the desired range to track the beam
-  for(int i = 0;i < nx;i++)
+  for(int i = 0;i < nx_cu;i++)
   {
-    if(thisInit.xinit - x_cu[i] <= ((0.5+1.0e-10)*dx + 1e-11) && thisInit.xinit - x_cu[i] >= -1*((0.5+1.0e-10)*dx + 1e-11) )
+    if(thisInit.xinit - x_cu[i] <= ((0.5+1.0e-10)*dx_cu + 1e-11) && thisInit.xinit - x_cu[i] >= -1*((0.5+1.0e-10)*dx_cu + 1e-11) )
     {
       thisx_0=i;
       break;
@@ -52,9 +51,9 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
   }
 
   //determining the initial z grid index within the desired range to track the beam
-  for(int i = 0;i < nz;i++)
+  for(int i = 0;i < nz_cu;i++)
   {
-    if(thisInit.zinit - z_cu[i] <= ((0.5+1.0e-10)*dz + 1e-11) && thisInit.zinit - z_cu[i] >= -1*((0.5+1.0e-10)*dz + 1e-11) )
+    if(thisInit.zinit - z_cu[i] <= ((0.5+1.0e-10)*dz_cu + 1e-11) && thisInit.zinit - z_cu[i] >= -1*((0.5+1.0e-10)*dz_cu + 1e-11) )
     {
 
       thisz_0=i;
@@ -62,33 +61,35 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
     }
   }
   //determining the velocity characteristics of the ray based upon its initial position
-  double k = sqrt((pow(omega,2.0)-pow(wpeInit,2.0))/pow(c,2.0));
-  double knorm = sqrt(pow(kx_init,2.0)+pow(kz_init,2.0));
-  mykx=(kx_init/knorm)*k;			// Normalized value for the ray's initial k_x
-  mykz=(kz_init/knorm)*k;			// Normalized value for the ray's initial k_z
-  myvxprev = pow(c,2.0)*mykx/omega;                   // v_group, group velocity (dw/dk) from D(k,w).
-  myvzprev =  pow(c,2.0)*mykz/omega;
-  markingxprev = thisx_0;
-  markingzprev = thisz_0;
+  double k = sqrt((pow(omega_cu,2.0)-pow(vec2D_cu(wpe_cu,thisx_0, thisz_0, nz_cu),2.0))/pow(c_cu,2.0));
+  double knorm = sqrt(pow(kxinit,2.0)+pow(kzinit,2.0));
+  mykx=(kxinit/knorm)*k;			// Normalized value for the ray's initial k_x
+  mykz=(kzinit/knorm)*k;			// Normalized value for the ray's initial k_z
+  myvxprev = pow(c_cu,2.0)*mykx/omega_cu;                   // v_group, group velocity (dw/dk) from D(k,w).
+  myvzprev =  pow(c_cu,2.0)*mykz/omega_cu;
+  ////markingxprev = thisx_0;
+  ////markingzprev = thisz_0;
   //__________Time Stepping__________
     int numcrossing = 0;
     //looping through time intervals
-    for(int i = 1; i < nt;i++)
+    for(int i = 1; i < nt_cu;i++)
     {
-      myvz = myvzprev - pow(c,2.0)/(2.0*ncrit)*vec3D(force, thisx_0, thisz_0,0, nz, 2)*dt;
-      myvx = myvxprev - pow(c,2.0)/(2.0*ncrit)*vec3D(force, thisx_0, thisz_0,1, nz, 2)*dt;
-      myx = thisInit.xinit + myvx*dt;
-      myz = thisInit.zinit + myvz*dt;
+      double forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);
+      double forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
+      myvz = myvzprev - forcex*dt_cu;
+      myvx = myvxprev - forcez*dt_cu;
+      myx = thisInit.xinit + myvx*dt_cu;
+      myz = thisInit.zinit + myvz*dt_cu;
       int search_index_x = 1;
       int search_index_z = 1;
-      int thisx_m = fmax(0, thisx_0-search_index_x );
-      int thisx_p = fmin(nx-1, thisx_0+search_index_x);
-      int thisz_m = fmax(0, thisz_0-search_index_z);
-      int thisz_p = fmin(nz-1, thisz_0+search_index_z);
+      int thisx_m = MAX(0, thisx_0-search_index_x );
+      int thisx_p = MIN(nx_cu-1, thisx_0+search_index_x);
+      int thisz_m = MAX(0, thisz_0-search_index_z);
+      int thisz_p = MIN(nz_cu-1, thisz_0+search_index_z);
       //determining the current x index of the ray
       for(int j = thisx_m; j <= thisx_p;j++)
       {
-        if ( myx - x_cu[j] <= ((0.5+1.0e-10)*dx + 1e-12) && myx - x_cu[j] >= -1*((0.5+1.0e-10)*dx + 1e-12))
+        if ( myx - x_cu[j] <= ((0.5+1.0e-10)*dx_cu + 1e-12) && myx - x_cu[j] >= -1*((0.5+1.0e-10)*dx_cu + 1e-12))
         {
           thisx = j;
           break;
@@ -98,15 +99,15 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
       //determining the current z index of the ray
       for(int j = thisz_m; j <= thisz_p; j++)
       {
-        if (myz - z_cu[j] <= ((0.5+1.0e-10)*dz + 1e-12) && myz - z_cu[j] >= -1*((0.5+1.0e-10)*dz + 1e-12))
+        if (myz - z_cu[j] <= ((0.5+1.0e-10)*dz_cu + 1e-12) && myz - z_cu[j] >= -1*((0.5+1.0e-10)*dz_cu + 1e-12))
         {
 
           thisz = j;
           break;
          }
       }
-      double linez[2]={thisInit.zinit, myz};
-      double linex[2]={thisInit.xinit, myx};
+      //double linez[2]={thisInit.zinit, myz};
+      //double linex[2]={thisInit.xinit, myx};
       int lastx = 10000;
       int lastz = 10000;
       //iterating through the selected portions of the x spatial tracking arrays
@@ -114,7 +115,7 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
       //Marked = trajectory of a single ray, boxes_cu = coordinates of each ray intersection
       for(int j = thisx_m; j <= thisx_p;j++)
       {
-        double currx = x_cu[j];//-dx/2;//crossing into 
+        double currx = x_cu[j];//-dx_cu/2;//crossing into 
         //if the ray is currently between within the desired caustic zone for a crossing
         if((myx > currx && thisInit.xinit <= (currx + 1e-10)) || (myx < currx && thisInit.xinit >= (currx- 1e-10)))
         {
@@ -124,15 +125,15 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
           //if the ray has moved since last update
           if(abs(crossx-lastz)>1.0e-20)
           {
-            vec3DW(crossx_cu, beam, raynum, numcrossing, nrays, ncrossings,currx);
-            vec3DW(crossz_cu, beam, raynum, numcrossing, nrays, ncrossings,crossx);
+            vec3DW_cu(crossx_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,currx);
+            vec3DW_cu(crossz_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,crossx);
             //if ray is still within the grid
-            if(myx < (xmax+dx/2 + 1e-10) && myx > (xmin-dx/2 - 1e-10))
+            if(myx < (xmax_cu+dx_cu/2 + 1e-10) && myx > (xmin_cu-dx_cu/2 - 1e-10))
             {
-              //printf("(%f, %f), ([%f,%f], [%f, %f]) \n", myx, myz, dx*thisx+ xmin, dx*thisx+dx + xmin, dz*thisz+ zmin, dz*thisz+dz+ zmin);
-              vec4DW(boxes_cu, beam,raynum,numcrossing,0, nrays, ncrossings, 2, thisx+1);//[beam][raynum][numcrossing][0]
-              vec4DW(boxes_cu, beam,raynum,numcrossing,1, nrays, ncrossings, 2, thisz+1);//[beam][raynum][numcrossing][1]
-              vec4DW(marked_cu, beam,raynum,thisx,thisz, nrays, nx, nz, 1);
+              //printf("(%f, %f), ([%f,%f], [%f, %f]) \n", myx, myz, dx_cu*thisx+ xmin_cu, dx_cu*thisx+dx_cu + xmin_cu, dz_cu*thisz+ zmin_cu, dz_cu*thisz+dz_cu+ zmin_cu);
+              vec4DW_cu(boxes_cu, beam,raynum,numcrossing,0, nrays_cu, ncrossings_cu, 2, thisx+1);//[beam][raynum][numcrossing][0]
+              vec4DW_cu(boxes_cu, beam,raynum,numcrossing,1, nrays_cu, ncrossings_cu, 2, thisz+1);//[beam][raynum][numcrossing][1]
+              //vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
             }
             lastx = currx;
             numcrossing += 1;
@@ -145,7 +146,7 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
       //Same idea as previous loop, but for the Z coordinate instead of x
         for(int j = thisz_m; j <= thisz_p;j++)//for [thisz_m, thisz_p] previous z locations, iterate through spatial locations centered on thisz
         {
-          double currz = z_cu[j];//-dz/2;//center of the jth zone
+          double currz = z_cu[j];//-dz_cu/2;//center of the jth zone
           //printf("REE\n");
           if((myz > (currz) && thisInit.zinit < (currz + 1e-10)) || (myz < (currz) && thisInit.zinit > (currz - 1e-10)))//if myz is approximately equal to a zone crossing
           {
@@ -155,13 +156,13 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
             double crossz = m*currz+b;
             if(abs(crossz-lastx) > 1.0e-20)
             {
-              vec3DW(crossz_cu, beam, raynum, numcrossing, nrays, ncrossings,crossx);
-            vec3DW(crossx_cu, beam, raynum, numcrossing, nrays, ncrossings,currz);
-              if(myz < (zmax+dz/2 +1e-10) && myz > (zmin-dz/2-1e-10))
+              vec3DW_cu(crossx_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,crossz);
+              vec3DW_cu(crossz_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,currz);
+              if(myz < (zmax_cu+dz_cu/2 +1e-10) && myz > (zmin_cu-dz_cu/2-1e-10))
               {
-               vec4DW(boxes_cu, beam,raynum,numcrossing,0, nrays, ncrossings, 2, thisx+1);//[beam][raynum][numcrossing][0]
-               vec4DW(boxes_cu, beam,raynum,numcrossing,1, nrays, ncrossings, 2, thisz+1);//[beam][raynum][numcrossing][1]
-               vec4DW(marked_cu, beam,raynum,thisx,thisz, nrays, nx, nz, 1);
+               vec4DW_cu(boxes_cu, beam,raynum,numcrossing,0, nrays_cu, ncrossings_cu, 2, thisx+1);//[beam][raynum][numcrossing][0]
+               vec4DW_cu(boxes_cu, beam,raynum,numcrossing,1, nrays_cu, ncrossings_cu, 2, thisz+1);//[beam][raynum][numcrossing][1]
+              // vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
               }
               lastz = currz;
               numcrossing += 1;
@@ -172,12 +173,12 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
         //Sets the "initial conditions" for the next iteration
         thisx_0 = thisx;
         thisz_0 = thisz;
-        markingx = thisx;
-        markingz = thisz;
+        //markingx = thisx;
+        //markingz = thisz;
         //Deposit energy due to the incident ray
   	    double increment = thisInit.urayinit;
-        double xp = (myx - (x[thisx]+dx/2.0))/dx;
-        double zp = (myz - (z[thisz]+dz/2.0))/dz;
+        double xp = (myx - (x_cu[thisx]+dx_cu/2.0))/dx_cu;
+        double zp = (myz - (z_cu[thisz]+dz_cu/2.0))/dz_cu;
         int xadd = (xp >= 0) ? 1 : -1;
         int zadd = (zp >= 0) ? 1 : -1;
         double dl = zp * zadd;
@@ -191,21 +192,21 @@ __global__ void rayLaunch(rayinit* init, double* edepcu, double* force, double* 
           printf("NaN Error: Error in Grid Interpolation \n");
           break;
         }
-        vec3DI(edepcu, beam, numray, thisx+1, thisz+1, nrays, nx,nz, a1*increment);	// blue
-        vec3DI(edepcu, beam, numray, thisx+xadd+1, thisz+1, nrays, nx,nz, a2*increment);// green
-        vec3DI(edepcu, beam, numray, thisx+1, thisz+zadd+1, nrays, nx,nz, a3*increment);// yellow
-        vec3DI(edepcu, beam, numray, thisx+xadd+1, thisz+zadd+1, nrays, nx,nz, a4*increment);	// red
+        vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a1*increment);	// blue
+        vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a2*increment);// green
+        vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a3*increment);// yellow
+        vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a4*increment);	// red
         thisInit.xinit = myx;
         myvxprev = myvx;
         thisInit.zinit = myz;
         myvzprev = myvz;
-        markingxprev = markingx;
-        markingzprev = markingz;
+        ////markingxprev = //markingx;
+        ////markingzprev = //markingz;
         
-      if ( (myx < (xmin-(dx/2.0))) || (myx > (xmax+(dx/2.0))))
+      if ( (myx < (xmin_cu-(dx_cu/2.0))) || (myx > (xmax_cu+(dx_cu/2.0))))
       {
         break;                  // "breaks" out of the i loop once the if condition is satisfied
-      } else if ( (myz < (zmin-(dz/2.0))) || (myz > (zmax+(dz/2.0)))){
+      } else if ( (myz < (zmin_cu-(dz_cu/2.0))) || (myz > (zmax_cu+(dz_cu/2.0)))){
            // the "|" means "or" (symbol above the return key)
         break;
     }
@@ -218,51 +219,65 @@ __device__ void collapseEdep_CU(double* edepcu, double* edepcuComp, int beam)//f
 {
   int indexX = blockDim.x*blockIdx.x+threadIdx.x;
   int indexZ = blockDim.y*blockIdx.y+threadIdx.y;
-  if(indexX >= nx || indexZ >= nz)
+  if(indexX >= nx_cu || indexZ >= nz_cu)
   {
     return;
   }
   double accumulator = 0.0;
-  for(int i = 0; i < nrays;i++)
+  for(int i = 0; i < nrays_cu;i++)
   {
-    accumulator += vec4D(edepcu, beam, i, indexX, indexZ, nrays, nx+2, nz+2); 
+    accumulator += vec4D_cu(edep_cu, beam, i, indexX, indexZ, nrays_cu, nx_cu+2, nz_cu+2); 
   }
-  vec3DW(edepcuComp, beam, indexX, indexZ, nx+2, nz+2);
+  vec3DW_cu(edepcuComp, beam, indexX, indexZ, nx_cu+2, nz_cu+2, accumulator);
 
 }
 __global__ void locateInts(int* ints, int beam,double* edepcu, double* edepcuComp)
 {
-  collapseEdep_CU(edepcu, edepcuComp);
+  collapseEdep_CU(edep_cu, edepcuComp, beam);
   //Locate all intersections
   int raynum = blockDim.x*blockIdx.x+threadIdx.x;
-  if(raynum >= nrays)
+  if(raynum >= nrays_cu)
   {
     return;
   }
   //for each crossing of raynum
-  for(int i = 0; i < ncrossings; i++)
+  for(int i = 0; i < ncrossings_cu; i++)
   {
     //spatial coordinates
-    int rx = vec4D(boxes_cu, beam,raynum,i,0, nrays, ncrossings, 2);
-    int rz = vec4D(boxes_cu, beam,raynum,i,0, nrays, ncrossings, 2);
+    int rx = vec4D_cu(boxes_cu, beam,raynum,i,0, nrays_cu, ncrossings_cu, 2);
+    int rz = vec4D_cu(boxes_cu, beam,raynum,i,0, nrays_cu, ncrossings_cu, 2);
     int cnt = 0;
     if(!rx || !rz)
       break;
     rx--;
     rz--;
-    for(int n = 0; n < nbeams;n++)
+    for(int n = 0; n < nbeams_cu;n++)
     {
-      for(int j = 0; j < nrays; j++)
+      for(int j = 0; j < nrays_cu; j++)
       {
-        if(vec4D(marked_cu, n,j,rx,rz))
+        if(vec4D_cu(marked_cu, n,j,rx,rz,nrays_cu, nx_cu, nz_cu))
         {
-          vec4D(ints, beam, raynum, i, cnt++, nrays, ncrossings, numstored);
+          vec4DW_cu(ints, beam, raynum, i, cnt++, nrays_cu, ncrossings_cu, numstored_cu,1);
         }
-        if(cnt >= numstored)
+        if(cnt >= numstored_cu)
         {
           break;
         }
       }
     }
   }
+}
+#define T 512
+#define B 1024
+void LaunchCUDARays(GConfig gpu,rayinit* rays)
+{ int n = 0;
+  hostP[0] = rays;
+  sizes[0] = nbeams*nrays*sizeof(rayinit);
+  for(int* i = (int*)hostP; i != NULL; i++)
+  {
+    n++;
+  }
+  printf("n %d\n",n);
+  gpu.deviceDataTransfer(hostP, devP, sizes, n, 0);
+  rayLaunchKernel<<<T,B>>>();
 }

@@ -2,9 +2,12 @@
 #define TRACE
   #include "implSim.hpp"
   #include "customMath.hpp"
+  #include "parallelConfig.hpp"
+
   extern void launchRays();
   extern void track(int raynum, int xinit, int zinit, int kxinit, int kzinit, double urayinit, int beam);
   extern omp_lock_t writelock;
+
   //
   struct rayinit//composite struct, compactly store necessary initial information
   {
@@ -16,4 +19,8 @@
       double urayinit;
       double wpeinit;
   };
+       extern void LaunchCUDARays(GConfig gpu,rayinit* rays);
+
+  extern void launch_ray_XZ(rayinit initSettings, int raynum);
+
 #endif

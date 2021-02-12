@@ -13,7 +13,7 @@ implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read
 xarr = np.array(implSim['/x'][:]);
 zarr = np.array(implSim['/z'][:]);
 eden = np.array(implSim['/eden_ncrit'][:]);
-field = np.array(implSim['/New_Field'][:]);
+field = np.array(implSim['/Original_Field'][:]);
 mach = np.array(implSim['/machnum'][:]);
 perturb = np.array(implSim['/density_perturbation'][:]);
 #convert to microns

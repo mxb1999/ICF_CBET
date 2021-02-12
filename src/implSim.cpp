@@ -11,6 +11,7 @@ int main(int argc, char const *argv[]) {
     4. Update/write HDF5 file with desired output arrays
     5. Plot arrays (performed by matplotting.py)
   */
+  pyPlot = (int)argv[1][0] - 48;
   auto start1 = chrono::high_resolution_clock::now();
   initialize();
   auto stop1 = chrono::high_resolution_clock::now();

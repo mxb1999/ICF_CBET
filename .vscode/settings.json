@@ -2,6 +2,7 @@
     "files.associations": {
         "cmath": "cpp",
         "*.tcc": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "__config": "cpp"
     }
 }

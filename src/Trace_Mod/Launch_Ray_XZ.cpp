@@ -82,10 +82,7 @@ void track(int raynum, double xinit, double zinit, double kxinit, double kzinit,
       prevcross[0] = xnew;
       prevcross[1] = znew;
       numcrossing++;
-      if(raynum == 0 && beam == 1)
-      {
-        raypath[currX,currZ]++;
-      }
+
       deltaX = 0;
       deltaZ = 0;
     }
@@ -206,7 +203,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
  // }
 
   //determining the velocity characteristics of the ray based upon its initial position
-  double k = sqrt((pow(omega,2.0)-pow(wpe[thisx_0,thisz_0],2.0))/pow(c,2.0));
+  double k = sqrt((pow(omega,2.0)-pow(vec2D(wpe, thisx_0, thisz_0, nz),2.0))/pow(c,2.0));
   double knorm = sqrt(pow(kx_init,2.0)+pow(kz_init,2.0));
   mykx=(kx_init/knorm)*k;			// Normalized value for the ray's initial k_x
   mykz=(kz_init/knorm)*k;			// Normalized value for the ray's initial k_z
@@ -216,13 +213,16 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
   markingzprev = thisz_0;
   //__________Time Stepping__________
     int numcrossing = 0;
+
     //looping through time intervals
     for(int i = 1; i < nt;i++)
     {
       myvz = myvzprev - pow(c,2.0)/(2.0*ncrit)*vec2D(dedendz,thisx_0,thisz_0, nz)*dt;
-      myvx = myvxprev - pow(c,2.0)/(2.0*ncrit)*dedendx[thisx_0,thisz_0]*dt;
+      myvx = myvxprev - pow(c,2.0)/(2.0*ncrit)*vec2D(dedendx,thisx_0,thisz_0, nz)*dt;
+
       myx = myxprev + myvx*dt;
       myz = myzprev + myvz*dt;
+
       int search_index_x = 1;
       int search_index_z = 1;
       int thisx_m = fmax(0, thisx_0-search_index_x );
@@ -249,9 +249,14 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           break;
          }
       }
+
+      if(raynum == 0 && beam == 1)
+      {
+        raypath[thisx*nz + thisz]++;
+      }
       double linez[2]={myzprev, myz};
       double linex[2]={myxprev, myx};
-      int lastx = 10000;
+      int lastx = 10000;//
       int lastz = 10000;
       //iterating through the selected portions of the x spatial tracking arrays
       //Boxes stores the spatial locations of each crossing of each ray
@@ -353,19 +358,23 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         double a2 = (1.0-dl)*dm;		// green	: (x+1, z  )
         double a3 = dl*(1.0-dm);		// yellow	: (x  , z+1)
         double a4 = dl*dm;			// red 		: (x+1, z+1)
+        if(a1*increment < 0 || a2*increment < 0 || a3*increment < 0 || a4*increment < 0  )
+        {
+          printf("Kill me %e %e %d %d\n", vec2D(dedendx,thisx_0,thisz_0, nz),vec2D(dedendz,thisx_0,thisz_0, nz), thisx,thisz);
+        }
         if((xadd != xadd) && (zadd != zadd))
         {
           printf("NaN Error: Error in Grid Interpolation \n");
           break;
         }
-        #pragma omp atomic update
-        edep[beam,thisx+1,thisz+1] += a1*increment;	// blue
-        #pragma omp atomic update
-        edep[beam,thisx+xadd+1,thisz+1] += a2*increment;	// green
-        #pragma omp atomic update
-        edep[beam,thisx+1,thisz+zadd+1] += a3*increment;	// yellow
-        #pragma omp atomic update
-        edep[beam,thisx+xadd+1,thisz+zadd+1] += a4*increment;	// red
+        
+        vec3DIA(edep,beam,thisx+1,thisz+1,nx+2,nz+2,a1*increment);	// blue
+        vec3DIA(edep,beam,thisx+1+xadd,thisz+1,nx+2,nz+2,a2*increment);	// blue
+        vec3DIA(edep,beam,thisx+1,thisz+1+zadd,nx+2,nz+2,a3*increment);	// blue
+        vec3DIA(edep,beam,thisx+1+xadd,thisz+1+zadd,nx+2,nz+2,a4*increment);	// blue
+
+        
+        
         myxprev = myx;
         myvxprev = myvx;
         myzprev = myz;
@@ -437,9 +446,12 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         break;                  // "breaks" out of the i loop once the if condition is satisfied
       } else if ( (myz < (zmin-(dz/2.0))) || (myz > (zmax+(dz/2.0)))){
            // the "|" means "or" (symbol above the return key)
+
         break;
     }
   }
+
+
   //delete [] mytime;
   //delete [] nuei;
   //delete [] amplitude_norm;
@@ -451,15 +463,20 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
 
 
 //use two threads here
-void launch_ray_XZ(double x_init, double z_init, double kx_init, double kz_init,double urayinit, int raynum, int beam)
+void launch_ray_XZ(rayinit initSettings, int raynum)
 {
-  printf("ya yeet\n");
+  double xinit = initSettings.xinit;
+  double zinit = initSettings.zinit;
+  double kxinit = initSettings.kxinit;
+  double kzinit = initSettings.kzinit;
+  int beam = initSettings.beam;
+  double urayinit = initSettings.urayinit;    
   if(switchvar)
   {
-    track(raynum, x_init, z_init, kx_init, kz_init, urayinit, beam);
+    track(raynum, xinit, zinit, kxinit, kzinit, urayinit, beam);
   }else
   {
-    rayLaunch(x_init,z_init, kx_init, kz_init, urayinit, raynum,beam);
+    rayLaunch(xinit,zinit, kxinit, kzinit, urayinit, raynum,beam);
   }
   if(raynum == 0 && beam == 1)
   {
