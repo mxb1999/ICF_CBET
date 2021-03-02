@@ -360,7 +360,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         double a4 = dl*dm;			// red 		: (x+1, z+1)
         if(a1*increment < 0 || a2*increment < 0 || a3*increment < 0 || a4*increment < 0  )
         {
-          printf("Kill me %e %e %d %d\n", vec2D(dedendx,thisx_0,thisz_0, nz),vec2D(dedendz,thisx_0,thisz_0, nz), thisx,thisz);
+          //printf("Kill me %e %e %d %d\n", vec2D(dedendx,thisx_0,thisz_0, nz),vec2D(dedendz,thisx_0,thisz_0, nz), thisx,thisz);
         }
         if((xadd != xadd) && (zadd != zadd))
         {

@@ -2,10 +2,9 @@
 
 
 
-
 int* getVarI(string target)
 {
-
+  
   std::map<std::string, int*> stringmap;
   stringmap["printUpdates"] = &printUpdates;
   stringmap["printTimings"] = &printTimings;
@@ -67,6 +66,7 @@ double* getVarD(string target)
   return result;
 
 }
+
 void setInitParams()//import configuration file
 {
   std::ifstream file;
@@ -110,66 +110,90 @@ void setInitParams()//import configuration file
   }
   fflush(stdout);
     file.close();
-}
-//dynamically allocate and initialize the arrays
-void initialize()
-{
-  setInitParams();
-  auto start = chrono::high_resolution_clock::now();
+  //fill in dependent variables
   mi_kg = 10230.0*me;	   // Mass of ion in kg
   mi = 10230*(1.0e3*me);          // Mass of ion in g
   uray_mult = intensity*(courant_mult)*pow(double(rays_per_zone),-1.0); //multiplier which determines intensity deposited in a given zone
-  dz = (zmax-zmin)/(nz-1);
+  dz = (zmax-zmin)/(nz-1);//dimensions of a single cell
   dx = (xmax-xmin)/(nx-1);
   nrays= int(rays_per_zone*(beam_max_z-beam_min_z)/dz)+0;//number of rays per beam
   dt=courant_mult*fmin(dx,dz)/c;//time stepping
   nt=int(pow(courant_mult,-1.0)*fmax(nx,nz)*2.0)+1;//number of time steps to track for a given ray
   numstored = nx*6;//number of rays stored per grid zone
   ncrossings = nx * 3;//max number of ray crossings that can be stored per ray
-
   freq = c/lambda;		// frequency of light, in Hz
   omega = 2*pi*freq;	// frequency of light, in rad/s
   ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));
-  //dynamic allocation (using pointers to access arrays so the stack is not filled)
-  intersections = new int[nx*nz]{0}; //nx nz
-  marked = new int[nx*nz*nbeams*numstored]{0}; //nx nz nrays nbeams
-  dedendx = new double[nx*nz]; //nx nz
-  dedendz = new double[nx*nz]; //nx nz
-  x = new double[nx]{0.0}; //nx nz
-  z = new double[nz]{0.0}; //nx nz
-  eden = new double[nx*nz]; //nx nz
-  edep = new double[nbeams * nx+2 * nz+2]{0.0}; //nx+2 nz+2 nrays
-  present = new int[nbeams*nx*nz]; //nx nz nbeams
-  machnum = new double[nx*nz]; //nx nz
-  boxes = new int[nbeams*nrays*ncrossings*2]{0}; //nbeams nrays ncrossings 2
-  u_flow = new double[nx*nz]; //nx nz
-  dkx = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
-  dkz = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
-  dkmag = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
-  W = new double[nbeams*nx*nz];//nx nz
-  W_new = new double[nbeams*nx*nz];//nx nz
-  wpe = new double[nx*nz]; //nx nz
-  crossesz = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  crossesx = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  ints = new int[nbeams*nrays*ncrossings*numstored]; //nbeams nrays ncrossings
-  raypath = new int[nx*nz];
-  mult = new double[nbeams*nrays*ncrossings]{1.0};
-  for(int i = 0; i < nbeams*nrays*ncrossings;i++)
+}
+//dynamically allocate and initialize the arrays
+void initialize()
+{
+  setInitParams();
+    printf("(%d,%d)\n", nx, nz);
+
+  cudaMallocManaged(&intersections, sizeof(int)*GRID);
+  //intersections = new int[GRID]{0}; //nx nz
+  cudaMallocManaged(&marked, sizeof(int)*GRID*RAYS);
+  //marked = new int[GRID*nbeams*numstored]{0}; //nx nz nrays nbeams
+  cudaMallocManaged(&dedendx, sizeof(int)*GRID);
+  //dedendx = new double[GRID]; //nx nz
+  cudaMallocManaged(&dedendz, sizeof(int)*GRID);
+  //dedendz = new double[GRID]; //nx nz
+  cudaMallocManaged(&x, sizeof(int)*nx);
+  //x = new double[nx]{0.0}; //nx nz
+  cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
+  
+  cudaMallocManaged(&present, sizeof(int)*GRID*nbeams);
+
+  cudaMallocManaged(&z, sizeof(int)*nz);
+  //z = new double[nz]{0.0}; //nx nz
+  cudaMallocManaged(&eden, sizeof(int)*GRID);
+  //eden = new double[GRID]; //nx nz
+  cudaMallocManaged(&edep, sizeof(int)*RAYS* (nx+2) * (nz+2));
+  //edep = new double[nbeams * nx+2 * nz+2]{0.0}; //nx+2 nz+2 nrays
+  cudaMallocManaged(&present, sizeof(int)*GRID);
+  //present = new int[nbeams*GRID]; //nx nz nbeams
+  cudaMallocManaged(&machnum, sizeof(int)*GRID);
+  //machnum = new double[GRID]; //nx nz
+  cudaMallocManaged(&boxes, sizeof(int)*RAYS*ncrossings);
+  //boxes = new int[nbeams*nrays*ncrossings*2]{0}; //nbeams nrays ncrossings 2
+  cudaMallocManaged(&u_flow, sizeof(int)*GRID);
+  //u_flow = new double[GRID]; //nx nz
+  cudaMallocManaged(&dkx, sizeof(int)*RAYS*ncrossings);
+  //dkx = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
+  cudaMallocManaged(&dkz, sizeof(int)*RAYS*ncrossings);
+  //dkz = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
+  cudaMallocManaged(&dkmag, sizeof(int)*RAYS*ncrossings);
+  //dkmag = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
+  cudaMallocManaged(&W, sizeof(int)*GRID*nbeams);
+  //W = new double[nbeams*GRID];//nx nz
+  cudaMallocManaged(&W_new, sizeof(int)*GRID*nbeams);
+  //W_new = new double[nbeams*GRID];//nx nz
+  cudaMallocManaged(&wpe, sizeof(int)*GRID);
+  //wpe = new double[GRID]; //nx nz
+  cudaMallocManaged(&crossesz, sizeof(int)*RAYS*ncrossings);
+  //crossesz = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
+  cudaMallocManaged(&crossesx, sizeof(int)*RAYS*ncrossings);
+  //crossesx = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
+  cudaMallocManaged(&ints, sizeof(int)*RAYS*ncrossings*numstored);
+  //ints = new int[nbeams*nrays*ncrossings*numstored]; //nbeams nrays ncrossings
+  cudaMallocManaged(&raypath, sizeof(int)*GRID);
+  //raypath = new int[GRID];
+  cudaMallocManaged(&mult, sizeof(int)*RAYS*ncrossings);
+  //mult = new double[nbeams*nrays*ncrossings]{1.0};
+  for(int i = 0; i < RAYS*ncrossings;i++)
   {
     mult[i] = 1;
   }
-  gain2arr = new double[nx*nz];
-  gain1arr = new double[nx*nz];
-  mag = new double[nx*nz];
+  gain2arr = new double[GRID];
+  gain1arr = new double[GRID];
+  mag = new double[GRID];
 
   auto check1 = chrono::high_resolution_clock::now();
   //Calculating the initial energy density, wpe, and machnum values
   span(x, xmin, xmax, nx);
   span(z, zmin, zmax, nz);
-  double* temp1 = new double[nx];
-  double* temp2 = new double[nx];
-  span(temp1, 0.1, 0.4, nx);
-  span(temp2, 1, 1.8, nx);
+  
   for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz;j++)
@@ -215,7 +239,6 @@ void initialize()
     }
     if(i < nz)
     {
-      printf("%d %d\n", nx-1,i);
 
       double temp = vec2D(dedendx,nx-2,i,nz);
       vec2DW(dedendx,nx-1,i,nz,temp);

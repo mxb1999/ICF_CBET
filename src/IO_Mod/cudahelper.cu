@@ -3,7 +3,57 @@
 
 
 
+TrackArrs* deviceTrackArrs(int device)
+{
+  TrackArrs* constArrs;
+  cudaMallocManaged(&constArrs, sizeof(TrackArrs));
+  if(constArrs == NULL)
+  {
+    return NULL;
+  }
+  constArrs->dedendx_cu = dedendx;
+  constArrs->dedendz_cu = dedendz;
+  constArrs->x_cu = x;
+  constArrs->z_cu = z;
+  constArrs->crossesx_cu = crossesx;
+  constArrs->crossesz_cu = crossesz;
+  constArrs->edep_cu = edep;
+  constArrs->wpe_cu = wpe;
+  constArrs->boxes_cu = boxes;
 
+  cudaMemAdvise(&constArrs, sizeof(TrackArrs), cudaMemAdviseSetReadMostly, device);
+  return constArrs;
+}
+TrackConst* deviceTrackConst(int device)
+{
+  TrackConst* constVals;
+  cudaMallocManaged(&constVals, sizeof(TrackConst));
+  if(constVals == NULL)
+  {
+    return NULL;
+  }
+  constVals->dx_cu = dx;
+  constVals->dz_cu = dz;
+  constVals->nx_cu = nx;
+  constVals->nz_cu = nz;
+  constVals->xmax_cu = xmax;
+  constVals->xmin_cu = xmin;
+  constVals->zmax_cu = zmax;
+  constVals->zmin_cu = zmin;
+  constVals->nrays_cu = nrays;
+  constVals->nbeams_cu = nbeams;
+
+  constVals->ncrossings_cu = ncrossings;
+  constVals->numstored_cu = numstored;
+  constVals->nt_cu = nt;
+  constVals->dt_cu = dt;
+  constVals->omega_cu = omega;
+  constVals->ncrit_cu = ncrit;
+
+  constVals->c_cu = c;
+  cudaMemAdvise(&constVals, sizeof(TrackConst), cudaMemAdviseSetReadMostly, device);
+  return constVals;
+}
 //GPU IO handlers
 void CGPUMemCpy(void* dest, void* source, size_t size, int direction)
 {
@@ -31,6 +81,7 @@ void CGPUDataTrans(GConfig* device, int dir)//function to transfer large quantit
             DeviceDataEntry* entry = it->second;
             void* currH = entry->getHostAddress();//host pointer
             void* currD = entry->getDeviceAddress();//device pointer
+            double* ref = entry->getRefAddress();
             size_t size = entry->getSize();
             bool p = entry->isPointer();
             //std::cout << entry->getName() + " " << p << std::endl;
@@ -42,16 +93,13 @@ void CGPUDataTrans(GConfig* device, int dir)//function to transfer large quantit
             }
             if(p)
             {
-                std::string deviceName = entry->getName()+"_cu";
-                
                 //cudaMalloc(&currD, size);
-                cudaError_t error = cudaMemcpyToSymbol(deviceName.c_str(), currH, size,0, cudaMemcpyHostToDevice);
+                cudaError_t error = cudaMemcpyToSymbol(*ref, currH, size,0, cudaMemcpyHostToDevice);
                 printf("Malloc Error: %s\n", cudaGetErrorString(error));
 
             }else
             {
-                std::string deviceName = entry->getName()+"_cu";
-                cudaError_t error = cudaMemcpyToSymbol(deviceName.c_str(),currH,size, 0, cudaMemcpyHostToDevice);
+                cudaError_t error = cudaMemcpyToSymbol(*ref,currH,size, 0, cudaMemcpyHostToDevice);
                 printf("Malloc Error: %s\n", cudaGetErrorString(error));
 
                 fflush(stdout);

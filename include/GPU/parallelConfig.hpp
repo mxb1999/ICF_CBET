@@ -3,7 +3,64 @@
     #include <cuda_runtime.h>
     #define CUDA 1
     #define OPENCL 2
-    #include "cuda_help.hpp"
+    #include <string>
+    #include <map>
+    class DeviceDataEntry//store and modify pointers for device-host comms
+    {
+        private:
+            void* hostAddress;//store the pointer to the allocated memory on the host system
+            void* deviceAddress;//store the pointer to the allocated memory on the device
+            double* refPointer;//reference pointer used to find device symbol
+            size_t size;//store the size of the data being allocated
+            std::string name;
+            bool isP;
+        public:
+            DeviceDataEntry(void* host, void* device, void* ref, const std::string n, size_t s, bool p)
+            {
+                this->hostAddress = host;
+                this->deviceAddress = device;
+                this->refPointer = (double*)ref;
+                this->name = n;
+                this->size = s;
+                this->isP = p;
+            };
+            int getSize()
+            {
+                return size;
+            };
+            bool isPointer()
+            {
+                return isP;
+            };
+            void* getHostAddress()
+            {
+                return hostAddress;
+            }
+            double* getRefAddress()
+            {
+                return refPointer;
+            }
+            std::string getName()
+            {
+                return name;
+            }
+            void* getDeviceAddress()
+            {
+                return deviceAddress;
+            }
+            void changeHostAddress(void* addr)
+            {
+                hostAddress = addr;
+            }
+            void changeDeviceAddress(void* addr)
+            {
+                deviceAddress = addr;
+            }
+    };
+    extern void gpuInit();
+    //cuda helper functions
+    
+    #define entryPair std::string, DeviceDataEntry*
     class GConfig//class for accessing and modifying GPU configuration info
     {
         private:
@@ -11,23 +68,32 @@
             short cus;//number of sms/compute units
             short numProc;//number of cards in system
             char* arch;//architecture generation number, used for compilation and debugging
-            
+            std::map<entryPair>* addressHash;
         public:
             void gpuMalloc(void** p, size_t size);//wrapper function for GPU memory allocation
             void gpuMemcpy(void* device, void* host, size_t size, int direction);//wrapper function for GPU memcpy functionality
-            void deviceDataTransfer(void** hostP, void** devP, size_t* sizes, int n, int dir);//wrapper function for GPU
+            void deviceDataTransfer(int dir);//wrapper function for GPU
             void transferConst();
+            void addData(void* h, void* d, void* r, const std::string name, size_t size, bool isP);
+            DeviceDataEntry* getDataEntry(const std::string name);
             int getType()
             {
                 return this->type;
             }
-            GConfig(int t)
+            std::map<entryPair>* getMap()
             {
-                this->type = t;
-            };
+                return this->addressHash;
+            }
+            GConfig(int t);
         // void
 
     };
+    extern void CGPUMemCpy(void* dest, void* source, size_t size, int direction);
+    extern void CGPUAlloc(void* p, size_t size);
+    extern void CGPUDataTrans(GConfig* device, int dir);//function to transfer large quantities of variables from host to GPU, makes bulk transfers easier
+    
+    
+    
     //static int gputype;//stores whether the GPU is utilizing CUDA or OpenCL  //TO BE COMPLETED LATER
     #define NONE 0
     #define WAITING 1

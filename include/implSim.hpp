@@ -1,18 +1,35 @@
-#include <queue>
-#include <iostream>
-#include <vector>
-#include <string>
-#include <fstream>
-#include <omp.h>
-#include <chrono>
-#include <cmath>
-#include <cuda_runtime.h>
 
-#include "customMath.hpp"
-//#include "LinkedList.h"
+
+
+
+
+
 
 #ifndef IMPLSIM_H_
 #define IMPLSIM_H_ 
+  #include <queue>
+  #include <iostream>
+  #include <vector>
+  #include <string>
+  #include <fstream>
+  #include <omp.h>
+  #include <chrono>
+  #include <cmath>
+  #include <cuda_runtime.h>
+  #include "parallelConfig.hpp"
+  #include "customMath.hpp"
+  #define GRID nx*nz
+  #define RAYS nbeams*nrays
+  #define CROSS nbeams*nrays*ncrossings
+//#include "LinkedList.h"
+
+    //Functions
+  extern void initialize();
+  extern void launchRays();
+  extern void cbet();
+  extern void updateH5();
+
+  extern GConfig* deviceConfiguration;
   template <typename T>
   inline T vec4D(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
   {
@@ -117,11 +134,7 @@
     #pragma omp atomic update
     arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
-    //Functions
-  extern void initialize();
-  extern void launchRays();
- extern void cbet();
-  extern void updateH5();
+
   typedef struct Intersection Intersection;
   typedef struct Ray Ray;
   struct Crossing

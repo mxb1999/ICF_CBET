@@ -19,7 +19,7 @@
       double urayinit;
       double wpeinit;
   };
-       extern void LaunchCUDARays(GConfig gpu,rayinit* rays);
+  extern void LaunchCUDARays(rayinit* rays);
 
   extern void launch_ray_XZ(rayinit initSettings, int raynum);
 

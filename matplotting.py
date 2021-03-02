@@ -308,6 +308,7 @@ def handle_keypress3D(event):
     set2 = np.array(implSim[path2][:])
     #set1, set2 = np.meshgrid(set1, set2)
     temp = np.array(implSim[path3][:])
+    temp[temp > 1e50] = 0
     plt.contourf(set1,set2,temp, 100, cmap='nipy_spectral')
     plt.title(namer.get())
     plt.xlabel("z (cm)")

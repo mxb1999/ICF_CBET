@@ -4,7 +4,6 @@ using namespace std;
 //uses x0 and z0 arrays to initialize the ray positions, then launches via Launch_Ray_XZ()
 void trackRays()
 {
-  GConfig rtx2070(CUDA);// = new GConfig(CUDA);
   if(printUpdates)
   {
     cout << "Tracking Rays" << endl;
@@ -21,13 +20,13 @@ void trackRays()
   //initializing arrays for beam 1
   span(phase_x,beam_min_z, beam_max_z, nrays);
   span(z0, beam_min_z, beam_max_z, nrays);
-  rayinit* raycoor = new rayinit[nrays*nbeams];
+  rayinit* raycoor;
+  cudaMallocManaged(&raycoor, sizeof(rayinit)*RAYS);
     double interpTerm[nrays*nbeams];
 
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
   {
-      cout<<"Check 4\n";
 
     raycoor[i].xinit = xmin-(dt/courant_mult*c*0.5);;
     raycoor[i].zinit = z0[i] + offset-((dz/2)+(dt/courant_mult*c*0.5));//initial z position of ray
@@ -47,7 +46,6 @@ void trackRays()
     //Beam one lies along the z axis, x axis is constant
   }
   int finalts[nrays][nbeams];
-  cout<<"Check 3 \n" << printUpdates;
 
   if(printUpdates)
   {
@@ -61,7 +59,6 @@ void trackRays()
   //#pragma omp parallel for num_threads(threads)
   for(int i = nrays; i < nrays*2; i++)
   {
-      cout<<"Check 4\n";
 
     raycoor[i].kxinit = 0;
     raycoor[i].kzinit = 1.0;
@@ -76,17 +73,22 @@ void trackRays()
   //rayLaunch<<<1024,512>>>(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays);
 
   //Reset the intial conditions for beam 2
-  switch(rtx2070.getType())
+  printf("Check 1\n");
+  fflush(stdout);
+  LaunchCUDARays(raycoor);
+  /*
+  switch(deviceConfiguration->getType())
   {
     case CUDA:
       cout << "Launching Beam 1 via CUDA" << endl;
-      LaunchCUDARays(rtx2070,raycoor);
+      LaunchCUDARays(raycoor);
       return;
       break;
     case OPENCL:
       break;
   }
-  
+  */
+ /*
   for(int i = 0; i < nrays*nbeams;i++)
   {
     int rnum = i%nrays;
@@ -96,7 +98,6 @@ void trackRays()
     double kzinit = raycoor[i].kzinit;
     beam = raycoor[i].beam;
     double urayinit = raycoor[i].urayinit;
-    printf("%f\n", raycoor[i].xinit);
 
     launch_ray_XZ(raycoor[i],rnum);
   }
@@ -109,7 +110,7 @@ void trackRays()
 
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
-
+*/
   if(printUpdates)
   {
     cout << "Finished Launching Rays" << endl;
@@ -156,6 +157,7 @@ void fillMarked()
         {
           tempx--;
           tempz--;
+          //printf("Ree: %d %d %p\n", tempx,tempz, marked);
           vec4DW(marked, i, tempx,tempz,q, nx, nz, ncrossings, j+1);
           vec3DI(present, i, tempx, tempz, nx,nz,1);
           if(i == 1 && j == 0)
@@ -177,14 +179,19 @@ void fillMarked()
 void launchRays()
 {
   trackRays();
-  fillMarked();
-
-  updateIntersections();
   for(int i= 0; i< nx+2; i++)
   {
     for(int j= 0; j< nz+2; j++)
     {
-      printf("Edep: %f %d %d\n",vec3D(edep,1,i,j,nx+2, nz+2),i,j);
+      if(vec3D(edep,0,i,j,nx+2, nz+2) > 0 || vec3D(edep,1,i,j,nx+2, nz+2) > 0)
+      {
+        printf("Edep: %e :: %e (%d, %d)\n",vec3D(edep,0,i,j,nx+2, nz+2),vec3D(edep,1,i,j,nx+2, nz+2),i,j);
+
+      }
     }
   }
+  //fillMarked();
+
+  updateIntersections();
+
 }

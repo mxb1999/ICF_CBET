@@ -18,9 +18,9 @@ CU_ODIR=Bin/cuda
 
 H5FLAGS = -g -Wall -Werror -fopenmp -Iinclude#Compiler flags for h5c++
 CPPFLAGS= -g  -Wall -MMD -MP -Werror -fopenmp -lm #compiler flags for g++
-LIBS = 	-Iinclude -Iinclude/GPU -I/src/include -I/usr/include/python3.8 -lpython3.8 -I/usr/include/cuda  -L/usr/local/cuda/lib64 -lcudart -lcuda -I/usr/include/hdf5/ -L/usr/lib/hdf5 -lhdf5 #Library Dependecies
+LIBS = 	-Iinclude -Iinclude/GPU -I/src/include -I/usr/include/python3.8 -lpython3.8 -I/usr/include/cuda  -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart -I/usr/include/hdf5/ -L/usr/lib/hdf5 -lhdf5 #Library Dependecies
 HLIBS =  -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial#hdf5 libraries
-NVFLAGS =  -std=c++11 -Xcompiler -fopenmp -Xcompiler -fPIC
+NVFLAGS =  -std=c++11  -Xcompiler -fopenmp -Xcompiler -fPIC
 _MAINOBJ = implSim.o #Main execution files not involved with any individual module
 MAINOBJ = $(patsubst %,$(ODIR)/%,$(_MAINOBJ))
 
@@ -36,13 +36,13 @@ TRACEOBJ = $(patsubst %,$(ODIR)/%,$(_TRACEOBJ))
 _INITOBJ = Initialize.o  #Initialization module source files
 INITOBJ = $(patsubst %,$(ODIR)/%,$(_INITOBJ))
 
-_IOOBJ =  hdf5writer.o gpuInterface.o cudahelper.o#Core IO module source files
+_IOOBJ =  hdf5writer.o gpuInterface.o#Core C++ IO module source files
 IOOBJ = $(patsubst %,$(ODIR)/%,$(_IOOBJ))
 
 _LIBOBJ =  customMath.o #Core IO module source files
 LIBOBJ = $(patsubst %,$(ODIR)/%,$(_LIBOBJ))
 
-_CUOBJ = trackray.o
+_CUOBJ = trackray.o GPU_Init.o cudahelper.o
 CUOBJ = $(patsubst %,$(CU_ODIR)/%,$(_CUOBJ))
 
 $(ODIR)/%.o: $(SRCDIR)/%.cpp  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
@@ -59,13 +59,17 @@ $(ODIR)/%.o: $(LDIR)/%.cpp  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.
 		$(CPP) -c -fPIC -fopenmp -g -o $@ $^ $(LIBS)
 $(ODIR)/%.o:  $(IO_DIR)/%.cpp#Compile instructions for I/O files
 	$(H5) -c -fPIC -fopenmp -g -o $@ $^ $(LIBS)
-$(CU_ODIR)/%.o: $(TRACE_DIR)/%.cu  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
+$(CU_ODIR)/%.o: $(TRACE_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
+	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
+$(CU_ODIR)/%.o: $(INIT_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
+	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
+$(CU_ODIR)/%.o: $(IO_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
 	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
 
 FILEGROUP = $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ)
 implSim:  $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ) $(CUOBJ)#Program compile
-	$(NV) -dlink $(NVFLAGS) $(CUOBJ) -o Bin/gpu.o $(LIBS)
-	$(H5)  $(CPPFLAGS)   $^ Bin/gpu.o -o $@ $(LIBS)
+	$(NV) -dlink $(NVFLAGS) $(CUOBJ) -o $(CU_ODIR)/cumulativeGPU.o $(LIBS)
+	$(H5)  $(CPPFLAGS)   $^ $(CU_ODIR)/cumulativeGPU.o -o $@ $(LIBS)
 
 .phony: clean
 
@@ -73,7 +77,7 @@ implSim:  $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ) $(CUO
 clean:
 	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
 	rm -f $(ODIR)/*.d *~ core $(INCDIR)/*~
-
+	rm -f $(CU_ODIR)/*.o *~ core $(INCDIR)/*~
 .phony: reset
 
 reset:

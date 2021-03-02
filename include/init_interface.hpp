@@ -4,6 +4,10 @@
   #include <vector>
   #include <queue>
   #include <map>
+
+  extern void gpuInit();
+  GConfig* deviceConfiguration;
+
   int printUpdates,printTimings,printCBETDiagnostics,printRayTrackDiagnostics,printHDF5Diagnostics,printSpecificTimings, pyPlot,iterate,calcCBET;
   double lambda,estat,mach,Z,mi,mi_kg,Te,Te_eV,Ti,Ti_eV,iaw,ncrit,freq,omega;
   int switchvar;
