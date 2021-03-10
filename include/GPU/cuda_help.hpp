@@ -57,6 +57,7 @@
     double* edep_cu;
     double* wpe_cu;
     int* boxes_cu;
+    int* ints_cu;
   };
   extern TrackArrs* deviceTrackArrs(int device);
   extern TrackConst* deviceTrackConst(int device);
@@ -118,26 +119,26 @@
   __forceinline__ __device__
   void vec2DW_cu(T* arr, int a, int b, int d2, T val)
   {
-    arr[(a)*d2+b] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+    arr[(a)*(d2)+(b)] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
 
   template <typename T>
   __forceinline__ __device__
   void vec4DI_cu(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
   {
-    arr[(((a)*d2+b)*d3+c)*d4+d] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+    arr[(((a)*(d2)+(b))*(d3)+(c))*(d4)+(d)] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
   template <typename T>
   __forceinline__ __device__
   void vec3DI_cu(T* arr, int a, int b, int c, int d2, int d3, T val)
   {
-    arr[((a)*d2+b)*d3+c] += val;
+    arr[((a)*(d2)+(b))*(d3)+(c)] += val;
   }
   template <typename T>
   __forceinline__ __device__
   void vec2DI_cu(T* arr, int a, int b, int d2, T val)
   {
-    arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+    arr[(a)*(d2)+(b)] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
 
   

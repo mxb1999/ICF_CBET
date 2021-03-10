@@ -9,7 +9,7 @@
 __device__ double* edepcuComp;
 
 //initializing necessary arrays for the calculations
-__global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
+__global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
 {
 
   double dx_cu = val.dx_cu;
@@ -50,8 +50,7 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
   {
     return;
   }
-
-  rayinit thisInit = *((rayinit*)rays_cu + raynum);
+  rayinit thisInit = *((rayinit*)rays_cu + beam*nrays_cu+ raynum);
   //double xinit = thisInit.xinit;
   //double zinit = thisInit.zinit;
   double kxinit = thisInit.kxinit;
@@ -68,23 +67,14 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
   //int //markingz;
   double myx = thisInit.xinit;
   double myz = thisInit.zinit;
-
   double myvx;
   double myvz;
   double mykx;
   double mykz;
   double myvxprev;
   double myvzprev;
-
   //determining the initial x grid index within the desired range to track the beam
-  for(int i = 0;i < nx_cu;i++)
-  {
-    if(thisInit.xinit - x_cu[i] <= ((0.5+1.0e-10)*dx_cu + 1e-11) && thisInit.xinit - x_cu[i] >= -1*((0.5+1.0e-10)*dx_cu + 1e-11) )
-    {
-      thisx_0=i;
-      break;
-    }
-  }
+
 
   //determining the initial z grid index within the desired range to track the beam
   for(int i = 0;i < nz_cu;i++)
@@ -96,7 +86,18 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
       break;
     }
   }
- 
+
+  for(int i = 0;i < nx_cu;i++)
+  {
+
+    double initX = thisInit.xinit;
+    double currX = x_cu[i];
+    if(initX - currX <= ((0.5+1.0e-10)*dx_cu + 1e-11) && initX - currX >= -1*((0.5+1.0e-10)*dx_cu + 1e-11) )
+    {
+      thisx_0=i;
+      break;
+    }
+  }
   
   //determining the velocity characteristics of the ray based upon its initial position
   double k = sqrt((pow(omega_cu,2.0)-pow(vec2D_cu(wpe_cu,thisx_0, thisz_0, nz_cu),2.0))/pow(c_cu,2.0));
@@ -113,28 +114,19 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
     //looping through time intervals
     for(int i = 1; i < nt_cu;i++)
     {
-      if(raynum == 0 && beam == 0)
+      if(raynum == 20 && beam == 1)
       {
-
-        printf("check 1 %d\n",i);
+        raypath[thisx*nz_cu + thisz] = 1;
       }
       double forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);
       double forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
-      if(raynum == 0 && beam == 0)
-      {
-        //printf("%d (%d,%d) %e::%e\n",i, thisx, thisz, myx, myz);
 
-      }
 
-      myvz = myvzprev - forcex*dt_cu;
-      myvx = myvxprev - forcez*dt_cu;
+      myvx = myvxprev - forcex*dt_cu;
+      myvz = myvzprev - forcez*dt_cu;
       myx += myvx*dt_cu;
       myz += myvz*dt_cu;
-      if(raynum == 0 && beam == 0)
-      {
-        //printf("%d (%d,%d) %e::%e\n",i, thisx, thisz, myx, myz);
 
-      }
       int search_index_x = 1;
       int search_index_z = 1;
       int thisx_m = MAX(0, thisx_0-search_index_x );
@@ -153,7 +145,7 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
       if(raynum == 0 && beam == 0)
       {
 
-        printf("check 2 %d\n",i);
+       // printf("check 2 %d\n",i);
       }
       //determining the current z index of the ray
       for(int j = thisz_m; j <= thisz_p; j++)
@@ -172,10 +164,10 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
       //iterating through the selected portions of the x spatial tracking arrays
       //boxes_cu stores the spatial locations of each crossing of each ray
       //Marked = trajectory of a single ray, boxes_cu = coordinates of each ray intersection
-
+      
       for(int j = thisx_m; j <= thisx_p;j++)
       {
-        double currx = x_cu[j];//-dx_cu/2;//crossing into 
+        double currx = x_cu[j]-dx_cu/2;//crossing into 
         //if the ray is currently between within the desired caustic zone for a crossing
         if((myx > currx && thisInit.xinit <= (currx + 1e-10)) || (myx < currx && thisInit.xinit >= (currx- 1e-10)))
         {
@@ -204,13 +196,13 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
       if(raynum == 0 && beam == 0)
       {
 
-        printf("check 3 %d\n",i);
+        //printf("check 3 %d\n",i);
       }
       //iterating through the selected portions of the z spatial tracking arrays
       //Same idea as previous loop, but for the Z coordinate instead of x
         for(int j = thisz_m; j <= thisz_p;j++)//for [thisz_m, thisz_p] previous z locations, iterate through spatial locations centered on thisz
         {
-          double currz = z_cu[j];//-dz_cu/2;//center of the jth zone
+          double currz = z_cu[j]-dz_cu/2;//center of the jth zone
           //printf("REE\n");
           if((myz > (currz) && thisInit.zinit < (currz + 1e-10)) || (myz < (currz) && thisInit.zinit > (currz - 1e-10)))//if myz is approximately equal to a zone crossing
           {
@@ -229,6 +221,7 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
               // vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
               }
               lastz = currz;
+
               numcrossing += 1;
               break;
             }
@@ -256,101 +249,116 @@ __global__ void rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu)
 
           break;
         }
-
+        //printf("edep: %d %d %d %d %d\n",thisx+1, thisz+1, beam, raynum, RAYS);
         vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a1*increment);	// blue
         vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a2*increment);// green
         vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a3*increment);// yellow
         vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a4*increment);	// red
+        thisInit.xinit = myx;
+        thisInit.zinit = myz;
         myvxprev = myvx;
         myvzprev = myvz;
         ////markingxprev = //markingx;
         ////markingzprev = //markingz;
-        if(raynum == 0 && beam == 0)
-      {
-
-        printf("check 4 %d\n",i);
-      }
       if ( (myx < (xmin_cu-(dx_cu/2.0))) || (myx > (xmax_cu+(dx_cu/2.0))))
       {
+
         break;                  // "breaks" out of the i loop once the if condition is satisfied
       } else if ( (myz < (zmin_cu-(dz_cu/2.0))) || (myz > (zmax_cu+(dz_cu/2.0)))){
            // the "|" means "or" (symbol above the return key)
+
         break;
     }
-    if(raynum == 0 && beam == 0)
-      {
 
-        printf("check 5 %d\n",i);
-      }
   }
   //delete [] mytime;
   //delete [] nuei;
   //delete [] amplitude_norm;
   
 }
-/*template <typename T>
-__device__ void flattenArray(T* in, T* out, int dimension,int targetDim, int dims, int dim1...)//function to compress edep_cu
+template <typename T>
+__device__ void flattenArray(T* in, T* out,int targetDim, int dims...)//function to compress edep_cu
 {
+  
   va_list args;
-  va_start(args,dim1);
-  int[] dimlist = int[dims];
-  int prod;
-  for(int i = 0; i < dims; i++)
+  va_start(args,dims);
+  int* dimlist = new int[dims];
+  int bprod=1;
+  int bnum = 1;
+  int aprod=1;
+  bool check = false;
+  for(int i = 1; i < dims; i++)
   {
-    if(i > targetDim)
-    dimlist[i] = va_arg(args, int);
+    int dim = va_arg(args, int);
+    if(!check)
+    {
+      bprod *= dim;
+    }
+    if(check)
+    {
+      aprod *= dim;
+    }
+    if(targetDim == i)
+    {
+      check = true;
+    }
+    dimlist[i] = dim;
   }
-  int indexX = blockDim.x*blockIdx.x+threadIdx.x;
-  int indexZ = blockDim.y*blockIdx.y+threadIdx.y;
-
-  int beam = 0;
-  if(indexX >= nx_cu*nbeams_cu || indexZ >= nz_cu*nbeams_cu)
+  int index = blockDim.x*blockIdx.x+threadIdx.x;
+  //printf("%d %d\n", index, prod);
+  int mainDim = dimlist[targetDim];
+  bnum = bprod/mainDim;
+  if(index >=  mainDim)
   {
     return;
   }
-  beam += ((indexX >= nx_cu) || (indexZ >= nz_cu));
-  indexX -= (indexX >= nx_cu) ? nx_cu : 0;
-  indexZ -= (indexZ >= nz_cu) ? nz_cu : 0;
+  //printf("%d\n", mainDim);
 
-  double accumulator = 0.0;
-  for(int i = 0; i < nrays_cu;i++)
+  for(int i = 0; i < bprod;i++)
   {
-    accumulator += vec4D_cu(edep_cu, beam, i, indexX, indexZ, nrays_cu, nx_cu+2, nz_cu+2); 
-  }
-  vec3DW_cu(edepcuComp, beam, indexX, indexZ, nx_cu+2, nz_cu+2, accumulator);
+    for(int j = 0; j < aprod;j++)
+    {
+      out[(i+index)*aprod+j] += in[(i+index)*aprod+j];
 
-}*/
-/*
-__global__ void locateInts(TrackConst& val, TrackArrs& arr)
+    }
+    //printf("%e\n", in[index + i]);
+  }
+  delete dimlist;
+}
+
+__global__ void locateInts(TrackConst val, TrackArrs arr, double* edep_flat)
 {
-  int dx_cu = val.dx_cu;
-  int dz_cu = val.dz_cu;
-  double nx_cu = val.nx_cu;
-  double xmax_cu = val.xmax_cu;
-  double xmin_cu = val.xmin_cu;
-  double zmax_cu = val.zmax_cu;
-  double zmin_cu = val.zmin_cu;
+
+  int nz_cu = val.nz_cu;
+  int nx_cu = val.nx_cu;
   int nrays_cu = val.nrays_cu;
   int ncrossings_cu = val.ncrossings_cu;
   int numstored_cu = val.numstored_cu;
-  int nt_cu = val.nt_cu;
-  double omega_cu = val.omega_cu;
-  double c_cu = val.c_cu;
-  double ncrit_cu = double.ncrit_cu;
+  int nbeams_cu = val.nbeams_cu;
+  int* ints_cu = arr.ints_cu;
+  int* boxes_cu = arr.boxes_cu;
+  double* edep_cu = arr.edep_cu;
+  int raynum = blockDim.x*blockIdx.x+threadIdx.x;
   
-  
-  double* dedendx_cu = arrs.dedendx_cu;
-  double* dedendz_cu = arrs.dedendz_cu;
-  double* x_cu = arrs.x_cu;
-  double* z_cu = arrs.z_cu;
-  double* crossesx_cu = arrs.crossesx_cu;
-  double* crossesz_cu = arrs.crossesz_cu;
-  double* edep_cu = arrs.edep_cu;
-  double* wpe_cu = arrs.wpe_cu;
-  int* boxes_cu = arrs.boxes_cu;
+  int ix = raynum / nz_cu;
+  int iz = raynum % nz_cu;
+  if(ix < nx_cu + 2 && iz < nz_cu + 2 && raynum < nx_cu*nz_cu)
+  {
+    printf("%d\n", ix, iz, raynum);
+    double acc0 = 0.0;
+    double acc1 = 0.0;
+    for(int i = 0; i < nrays_cu;i++)
+    {
+      acc0 += vec4D_cu(edep_cu, 0,i,ix,iz, nrays_cu, nx_cu+2,nz_cu+2);
+      acc1 += vec4D_cu(edep_cu, 1,i,ix,iz, nrays_cu, nx_cu+2,nz_cu+2);
+    }
+    vec3DW_cu(edep_flat, 0,ix,iz,nx_cu+2,nz_cu+2,acc0);
+    vec3DW_cu(edep_flat, 1,ix,iz,nx_cu+2,nz_cu+2,acc1);
+  }
+
+  //flattenEdep(edep_cu, edep_flat, 1, 4, nbeams_cu, nrays_cu, (nx_cu+2), (nz_cu+2));
   //collapseEdep_CU();
   //Locate all intersections
-  int raynum = blockDim.x*blockIdx.x+threadIdx.x;
   if(raynum >= nrays_cu*nbeams_cu)
   {
     return;
@@ -367,23 +375,37 @@ __global__ void locateInts(TrackConst& val, TrackArrs& arr)
       break;
     rx--;
     rz--;
-    for(int n = 0; n < nbeams_cu;n++)
+    for(int n = i+1; n < nbeams_cu;n++)
     {
       for(int j = 0; j < nrays_cu; j++)
       {
-        if(vec4D_cu(marked_cu, n,j,rx,rz,nrays_cu, nx_cu, nz_cu))
+        for(int q = 0; q < ncrossings_cu; q++)
         {
-          vec4DW_cu(ints_cu, beam, raynum, i, cnt++, nrays_cu, ncrossings_cu, numstored_cu,1);
+          int cx = vec4D_cu(boxes_cu, n,j,q,0, nrays_cu, ncrossings_cu, 2);
+          int cz = vec4D_cu(boxes_cu, n,j,q,0, nrays_cu, ncrossings_cu, 2);
+          if(cx == rx && cz == rz)
+          {
+            vec4DW_cu(ints_cu, beam, raynum, i,cnt, nrays_cu, ncrossings_cu, numstored_cu, j+1);
+            cnt++;
+          }
+          if(cnt >= numstored_cu)
+          {
+            break;
+          }
         }
         if(cnt >= numstored_cu)
         {
           break;
         }
       }
+      if(cnt >= numstored_cu)
+      {
+        break;
+      }
     }
   }
 }
-*/
+
 
 #define B 2
 void LaunchCUDARays(rayinit* rays)
@@ -391,7 +413,33 @@ void LaunchCUDARays(rayinit* rays)
 
   TrackConst constVals = *deviceTrackConst(0);
   TrackArrs constArrs = *deviceTrackArrs(0);
-  rayLaunchKernel<<<2,nrays>>>(constVals,constArrs,rays);
+  rayLaunchKernel<<<2,nrays>>>(constVals,constArrs,rays,raypath);
   cudaDeviceSynchronize();
-
+  cudaMallocManaged(&edep_flat, sizeof(double)*nbeams*(nx+2)*(nz+2));
+  locateInts<<<4,1024>>>(constVals,constArrs,edep_flat);
+  cudaDeviceSynchronize();
+  for(int i = 0; i < nrays; i++)
+  {
+    for(int j = 0; j < nx+2;j++)
+    {
+      for(int m = 0; m < nz+2;m++)
+      {
+        double edep41 = vec4D(edep, 0,i,j,m,nrays, nx+2, nz+2);
+        double edep42 = vec4D(edep, 1,i,j,m,nrays, nx+2, nz+2);
+        double edep31 = vec3D(edep_flat, 0,j,m,nx+2, nz+2);
+        double edep32 = vec3D(edep_flat, 1,j,m,nx+2, nz+2);
+        if(abs(edep31) > 0 || abs(edep32) > 0)
+        {
+          //printf("3d %e %e\n", edep31, edep32); 
+        }
+        if(abs(edep41) > 0 || abs(edep42) > 0)
+        {
+          //printf("4d %e %e\n", edep41, edep42); 
+        }
+      }
+    }
+  }  
+  cudaFree(edep);//free arrays no longer needed
+  cudaFree(dedendx);
+  cudaFree(dedendz);
 }

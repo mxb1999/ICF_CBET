@@ -1,6 +1,20 @@
 #include "implSim.hpp"
 #include <Python.h>
 using namespace std;
+
+
+
+
+CrossInfo* new_CrossInfo(int r, int c)
+{
+  CrossInfo* curr = new CrossInfo;
+  if(!curr)
+    return NULL;
+  curr->ray = r;
+  curr->cross = c;
+  return curr;
+}; 
+
 //main function called in program
 int main(int argc, char const *argv[]) {
   /*
@@ -13,7 +27,7 @@ int main(int argc, char const *argv[]) {
   */
   if(argc > 1)
   {
-    pyPlot = (int)argv[1][0] - 48;
+    pyPlot = argv[1][0] - 48;
   }else
   {
     pyPlot = 0;
@@ -31,7 +45,7 @@ int main(int argc, char const *argv[]) {
   }
   auto stop3 = chrono::high_resolution_clock::now();
   auto start4 = chrono::high_resolution_clock::now();
-  //updateH5();
+  updateH5();
   auto stop4 = chrono::high_resolution_clock::now();
   if(printTimings)
   {
@@ -42,7 +56,6 @@ int main(int argc, char const *argv[]) {
     cout << "_____________________________________________" << endl;
     cout << "Total CPU Time: " << chrono::duration_cast<chrono::milliseconds>(stop4-start1).count() << " ms" << endl;
   }
-  pyPlot = 0;
   if(pyPlot)
   {
     char filename[] = "matplotting.py";

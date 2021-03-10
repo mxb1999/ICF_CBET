@@ -20,7 +20,7 @@ H5FLAGS = -g -Wall -Werror -fopenmp -Iinclude#Compiler flags for h5c++
 CPPFLAGS= -g  -Wall -MMD -MP -Werror -fopenmp -lm #compiler flags for g++
 LIBS = 	-Iinclude -Iinclude/GPU -I/src/include -I/usr/include/python3.8 -lpython3.8 -I/usr/include/cuda  -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart -I/usr/include/hdf5/ -L/usr/lib/hdf5 -lhdf5 #Library Dependecies
 HLIBS =  -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial#hdf5 libraries
-NVFLAGS =  -std=c++11  -Xcompiler -fopenmp -Xcompiler -fPIC
+NVFLAGS =  -std=c++11 -g -G -Xcompiler -fopenmp -Xcompiler -fPIC
 _MAINOBJ = implSim.o #Main execution files not involved with any individual module
 MAINOBJ = $(patsubst %,$(ODIR)/%,$(_MAINOBJ))
 
@@ -60,11 +60,11 @@ $(ODIR)/%.o: $(LDIR)/%.cpp  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.
 $(ODIR)/%.o:  $(IO_DIR)/%.cpp#Compile instructions for I/O files
 	$(H5) -c -fPIC -fopenmp -g -o $@ $^ $(LIBS)
 $(CU_ODIR)/%.o: $(TRACE_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
-	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
+	$(NV) -c $(NVFLAGS) -rdc=true $^ -o $@  $(LIBS)
 $(CU_ODIR)/%.o: $(INIT_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
-	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
+	$(NV) -c $(NVFLAGS) -rdc=true $^ -o $@  $(LIBS)
 $(CU_ODIR)/%.o: $(IO_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
-	$(NV) -c $(NVFLAGS) -rdc=true -g $^ -o $@  $(LIBS)
+	$(NV) -c $(NVFLAGS) -rdc=true $^ -o $@  $(LIBS)
 
 FILEGROUP = $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ)
 implSim:  $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ) $(CUOBJ)#Program compile
@@ -100,4 +100,4 @@ deb install:
 
 run:
 	make
-	./implSim 1
+	./implSim $1

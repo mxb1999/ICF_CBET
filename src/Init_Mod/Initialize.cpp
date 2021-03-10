@@ -129,57 +129,57 @@ void setInitParams()//import configuration file
 void initialize()
 {
   setInitParams();
-    printf("(%d,%d)\n", nx, nz);
+  printf("(%d,%d) %d %d\n", nx, nz, nrays, ncrossings);
 
   cudaMallocManaged(&intersections, sizeof(int)*GRID);
   //intersections = new int[GRID]{0}; //nx nz
   cudaMallocManaged(&marked, sizeof(int)*GRID*RAYS);
   //marked = new int[GRID*nbeams*numstored]{0}; //nx nz nrays nbeams
-  cudaMallocManaged(&dedendx, sizeof(int)*GRID);
+  cudaMallocManaged(&dedendx, sizeof(double)*GRID);
   //dedendx = new double[GRID]; //nx nz
-  cudaMallocManaged(&dedendz, sizeof(int)*GRID);
+  cudaMallocManaged(&dedendz, sizeof(double)*GRID);
   //dedendz = new double[GRID]; //nx nz
-  cudaMallocManaged(&x, sizeof(int)*nx);
+  cudaMallocManaged(&x, sizeof(double)*nx);
   //x = new double[nx]{0.0}; //nx nz
   cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
   
   cudaMallocManaged(&present, sizeof(int)*GRID*nbeams);
 
-  cudaMallocManaged(&z, sizeof(int)*nz);
+  cudaMallocManaged(&z, sizeof(double)*nz);
   //z = new double[nz]{0.0}; //nx nz
-  cudaMallocManaged(&eden, sizeof(int)*GRID);
+  cudaMallocManaged(&eden, sizeof(double)*GRID);
   //eden = new double[GRID]; //nx nz
-  cudaMallocManaged(&edep, sizeof(int)*RAYS* (nx+2) * (nz+2));
+  cudaMallocManaged(&edep, sizeof(double)*RAYS* (nx+2) * (nz+2));
   //edep = new double[nbeams * nx+2 * nz+2]{0.0}; //nx+2 nz+2 nrays
   cudaMallocManaged(&present, sizeof(int)*GRID);
   //present = new int[nbeams*GRID]; //nx nz nbeams
-  cudaMallocManaged(&machnum, sizeof(int)*GRID);
+  cudaMallocManaged(&machnum, sizeof(double)*GRID);
   //machnum = new double[GRID]; //nx nz
-  cudaMallocManaged(&boxes, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&boxes, sizeof(int)*RAYS*ncrossings*2);
   //boxes = new int[nbeams*nrays*ncrossings*2]{0}; //nbeams nrays ncrossings 2
-  cudaMallocManaged(&u_flow, sizeof(int)*GRID);
+  cudaMallocManaged(&u_flow, sizeof(double)*GRID);
   //u_flow = new double[GRID]; //nx nz
-  cudaMallocManaged(&dkx, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&dkx, sizeof(double)*RAYS*ncrossings);
   //dkx = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
-  cudaMallocManaged(&dkz, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&dkz, sizeof(double)*RAYS*ncrossings);
   //dkz = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
-  cudaMallocManaged(&dkmag, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&dkmag, sizeof(double)*RAYS*ncrossings);
   //dkmag = new double[nbeams*nrays*ncrossings]; //nbeams nrays 2
-  cudaMallocManaged(&W, sizeof(int)*GRID*nbeams);
+  cudaMallocManaged(&W, sizeof(double)*GRID*nbeams);
   //W = new double[nbeams*GRID];//nx nz
-  cudaMallocManaged(&W_new, sizeof(int)*GRID*nbeams);
+  cudaMallocManaged(&W_new, sizeof(double)*GRID*nbeams);
   //W_new = new double[nbeams*GRID];//nx nz
-  cudaMallocManaged(&wpe, sizeof(int)*GRID);
+  cudaMallocManaged(&wpe, sizeof(double)*GRID);
   //wpe = new double[GRID]; //nx nz
-  cudaMallocManaged(&crossesz, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&crossesz, sizeof(double)*RAYS*ncrossings);
   //crossesz = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  cudaMallocManaged(&crossesx, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&crossesx, sizeof(double)*RAYS*ncrossings);
   //crossesx = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  cudaMallocManaged(&ints, sizeof(int)*RAYS*ncrossings*numstored);
+  cudaMallocManaged(&ints, sizeof(CrossInfo)*RAYS*numstored);
   //ints = new int[nbeams*nrays*ncrossings*numstored]; //nbeams nrays ncrossings
   cudaMallocManaged(&raypath, sizeof(int)*GRID);
   //raypath = new int[GRID];
-  cudaMallocManaged(&mult, sizeof(int)*RAYS*ncrossings);
+  cudaMallocManaged(&mult, sizeof(double)*RAYS*ncrossings);
   //mult = new double[nbeams*nrays*ncrossings]{1.0};
   for(int i = 0; i < RAYS*ncrossings;i++)
   {
@@ -193,6 +193,8 @@ void initialize()
   //Calculating the initial energy density, wpe, and machnum values
   span(x, xmin, xmax, nx);
   span(z, zmin, zmax, nz);
+
+  printf("x: %p\n", x);
   
   for(int i = 0; i < nx;i++)
   {

@@ -84,6 +84,7 @@ double* i_b1Error;
 double* i_b2Error;
 double* mult;//nbeams nbeams-1 nrays ncrossings
 double* i_b_newplot;//nx nz
+double* edep_flat;
 double* edenplot; //the array is eden/ncrit,  nx nz
 double* edepplot; //nx nz
 int* raytrace;//nx nz

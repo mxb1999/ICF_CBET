@@ -6,12 +6,18 @@ using namespace std;
 void initializeArr()
 {
   //allocate space for the intensity and CBET multiplier arrays
-  i_b = new double[nbeams*nx*nz];//Initial intensity
-  i_b_prev = new double[nbeams*nx*nz];//Updated intensity
-  i_b_new = new double[nbeams*nx*nz];//Stores previous iteration intensity, initially 0
-  W_new = new double[nbeams*nx*nz];
-  W = new double[nbeams*nx*nz];
-  cs = 1e2*sqrt(ec*(Z*Te_eV+3.0*Ti_eV)/mi_kg);	// acoustic wave speed, approx. 4e7 cm/s in this example
+  cudaMallocManaged(&i_b, sizeof(double)*GRID);
+  cudaMallocManaged(&i_b_prev, sizeof(double)*GRID);
+  cudaMallocManaged(&i_b_new, sizeof(double)*GRID);
+  cudaMallocManaged(&W_new, sizeof(double)*GRID);
+  cudaMallocManaged(&W, sizeof(double)*GRID);
+
+  //i_b = new double[nbeams*nx*nz];//Initial intensity
+  //i_b_prev = new double[nbeams*nx*nz];//Updated intensity
+  //i_b_new = new double[nbeams*nx*nz];//Stores previous iteration intensity, initially 0
+  //W_new = new double[nbeams*nx*nz];
+  //W = new double[nbeams*nx*nz];
+  //cs = 1e2*sqrt(ec*(Z*Te_eV+3.0*Ti_eV)/mi_kg);	// acoustic wave speed, approx. 4e7 cm/s in this example
   //Initialize CBET array values
   for(int m = 0; m < nbeams; m++)
   {
@@ -20,7 +26,7 @@ void initializeArr()
     {
       for(int j = 0; j < nz;j++)
       {
-        double energyDep = vec3D(edep,m,i,j,nx,nz);//break up pipeline to prevent RAW dependencies
+        double energyDep = vec3D(edep_flat,m,i,j,nx,nz);//break up pipeline to prevent RAW dependencies
         double initEnergy = sqrt(1.0-vec2D(eden,i,j,nz)/ncrit)/double(rays_per_zone);
         double flownum = vec2D(machnum,i,j,nz)*cs;
         vec3DW(i_b,m,i,j,nx,nz, energyDep);///present[m][i][j];
@@ -62,7 +68,149 @@ void initializeArr()
   }
 */
 }
+__device__ void updateMultCU()
+{
+  //Outer summation over "sheets"/beams
+    //inner summation over interactions with other ray k at location l in that beam
+    //Sum G_jmkl from Russ' paper, function of intensity and validity of interaction
+      //Multiply G_jmkl by product of energy change ratio for ray k along path so far
+  double constant1 = (pow(estat,2.0))/(4*(1.0e3*me)*c*omega*kb*Te*(1+3*Ti/(Z*Te)));
 
+  for(int i = 0;i < nbeams-1;i++)
+  {
+    
+    for(int j = 0; j < nrays;j++)//for each ray
+    {
+      for(int m = 0; m < ncrossings;m++)
+      {
+        //identify all rays that j interacts with
+        int boxx = vec4D(boxes, i,j,m, 0, nrays, ncrossings,2);
+        int boxz = vec4D(boxes, i,j,m, 1, nrays, ncrossings,2);
+        if(!boxx || !boxz)//no more valid locations
+        {
+          break;
+        }
+        boxx--;
+        boxz--;
+        if(vec2D(intersections,boxx,boxz,nz))//if there is a valid intersection
+        {
+          double ne = vec2D(eden,boxx,boxz,nz);
+          double epsilon = 1.0-ne/ncrit;
+          double kmag = (omega/c)*sqrt(epsilon);         // magnitude of wavevector
+          int rayloc = 0;
+          double sum1 = 0;//outer sum, over each beam
+          double s_jm = vec3D(dkmag, i, j,m,nrays, ncrossings);
+          double L = dx/100*ncrit/ne;
+          for(int n = 0; n < nbeams;n++)//for every higher order beam (only consider those with higher indices to prevent counting twice)
+          {
+            if(n == i)
+            {
+              if(i == nbeams-1)
+                break;
+              n++;
+            }
+            double sum2 = 0;//inner sum, over each interaction
+            int cnt = 0;
+            int icnt = 0;
+            for(int l = 0; l < numstored;l++)
+            {
+              if(vec4D(marked, i,boxx,boxz, l, nrays, nx,nz))
+              {
+                icnt++;
+              }
+              if(vec4D(marked, n,boxx,boxz, l, nrays, nx,nz))
+              {
+                cnt++;
+              }
+            }
+          //printf("Count: %d %d :: %d %d\n", icnt, cnt, present[i][boxx][boxz],vec3D(present,n,boxx,boxz,nx,nz));
+          for(int l = 0; l < cnt;l++)//for every crossing 
+          {
+            
+            int initx = vec4D(boxes, n,j,0, 0, nrays, ncrossings,2)-1;
+            int initz = vec4D(boxes, n,j,0, 1, nrays, ncrossings,2)-1;
+            int kcross = 0;
+            double prod = 1;//inner product, each change in energy for kth beam
+            double xi = 0.9*(omega*L/c);
+            double dS_ratio = (double)vec3D(present,n,initx,initz,nx,nz)/vec3D(present,n,boxx,boxz,nx,nz);
+            //printf("Ratio: %e\n", dS_ratio);
+            double delS = fmin(1/sqrt(epsilon)*dS_ratio, xi*sqrt(ne/ncrit));
+            for(int q = 1; q < ncrossings;q++)
+            {
+              int kboxx = vec4D(boxes, n,l,q, 0, nrays, ncrossings,2);//location of kth beam
+              int kboxz = vec4D(boxes, n,l,q, 1, nrays, ncrossings,2);
+              
+              if(!kboxx || !kboxz)//if invalid crossing
+              {
+                break;
+              }
+            
+              kboxx--;
+              kboxz--;
+              
+              if(kboxx == boxx && kboxz == boxz)//if crossing q is at this grid location
+              {
+                kcross = q;
+                break;
+              }
+              int kboxx_next = vec4D(boxes, i,l,q+1, 0, nrays, ncrossings,2);//next crossing
+              int kboxz_next = vec4D(boxes, i,l,q+1, 1, nrays, ncrossings,2);
+              if(!kboxx_next || !kboxz_next)
+              {
+                break;
+              }
+              kboxx_next--;
+              kboxz_next--;
+              if(!vec3D(present,n,kboxx,kboxz,nx,nz))
+              {
+                //printf("None Present: %d %d :: ([%e,%e], [%e,%e])\n", kboxx, kboxz, kboxx*dx + xmin,(kboxx+1)*dx + xmin,kboxz*dz + xmin,(kboxz+1)*dz + xmin);
+              }
+              double this_E = vec3D(W,n,kboxx,kboxz,nx,nz)/vec3D(present,n,kboxx,kboxz,nx,nz);
+              double next_E = vec3D(W,n,kboxx_next,kboxz_next,nx,nz)/vec3D(present,n,kboxx_next,kboxz_next,nx,nz);
+              double ratio = next_E/this_E;
+              prod *= ratio;
+              
+            }
+            double epsilon = 1.0-ne/ncrit;
+            double kmag = (omega/c)*sqrt(epsilon);         // magnitude of wavevector
+            double kx1 = kmag * vec3D(dkx,i,j,m,nrays,ncrossings) / (vec3D(dkmag,i,j,m,nrays,ncrossings) + 1.0e-10);
+            double kx2 = kmag * vec3D(dkx,n,l,kcross,nrays,ncrossings) / (vec3D(dkmag,i+1,l,kcross,nrays,ncrossings) + 1.0e-10);
+            double kz1 = kmag * vec3D(dkz,i,j,m,nrays,ncrossings)/(vec3D(dkmag,i,j,m,nrays,ncrossings)+1.0e-10);
+            double kz2 = kmag * vec3D(dkz,n,l,kcross,nrays,ncrossings) / (vec3D(dkmag,i+1,l,kcross,nrays,ncrossings) + 1.0e-10);
+            double kiaw = sqrt(pow(kx2-kx1,2.0)+pow(kz2-kz1,2.0));
+          // magnitude of the difference between the two vectors
+          //  double vei = 4*sqrt(2*pi)*pow(ec,4)*pow(Z,2),
+            double ws = kiaw*cs;            // acoustic frequency, cs is a constant
+            double omega1= omega;  // laser frequency difference. To start, just zero.
+            double omega2 = omega;
+            double eta = ((omega2-omega1)-(kx2-kx1)*vec2D(u_flow,boxx,boxz, nz))/(ws+1.0e-10);
+            double efield2 = sqrt(8.*pi*1.0e7*vec3D(i_b,n,boxx,boxz,nx,nz)/c);             // electric field of a ray of beam 1
+            double P = (pow((iaw),2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw),2)*pow(eta,2));         // From Russ's paper
+            double L_jmkl = constant1*pow(efield2,2)*ne/ncrit*(1/iaw)*P;
+            double G = vec3D(dkmag,i,j,m,nrays,ncrossings)*delS/(sqrt(epsilon)*L_jmkl*cnt);
+            sum2+=(G*prod);
+            mult[(n*nrays+l)*ncrossings+kcross] = exp(sum2);
+            
+          }
+          short check = (sum1 != sum1);
+
+          sum1+=sum2;
+
+          
+          //printf("sum2: %e\n", sum2);
+        }
+        double La = c*sqrt(epsilon)*ncrit/(iaw*omega*ne);
+        double A_jm = s_jm*La;
+        mult[(i*nrays+j)*ncrossings+m] = exp(sum1-A_jm);
+        
+       // printf("Ray %d at Crossing %d: %e\n", j,m, mult[(i*nrays+j)*ncrossings+m]);
+       // printf("\t|%e|%e|%e|%e|\n", sum1, s_jm, A_jm, La);
+      }
+        
+      }
+    }
+  }
+}
 void updateMult()
 {
   //Outer summation over "sheets"/beams
@@ -318,17 +466,17 @@ void calculateMult(int ix, int iz, int i, int j, int m, int* numrays, int* marke
     //updating arrays based upon the calculated magnitude changes
     //Exponential gain function, important to note
 
-    //if (vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz) )//  <= sqrt(pow(dx,2) + pow(dz,2)))
-   // {
+    if (vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz) )//  <= sqrt(pow(dx,2) + pow(dz,2)))
+    {
       //if(j == 0)
       //{
               //#pragma omp atomic write
 
-        vec2DI(gain1arr,ix,iz,nz,gain1);
-        vec2DI(mag,ix,iz,nz,s_jm);
-        //gain2arr[ix][iz] += gain2;
-       // printf("Crossing: %d w/ mult %e, orig %e, mag %e, gain %e\n",m,exp(-1*vec3D(W,i,ix,iz,nx,nz)*vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz)*gain2/sqrt(epsilon)),
-        //  vec3D(W,i,ix,iz,nx,nz), vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz), gain2);
+      vec2DI(gain1arr,ix,iz,nz,gain1);
+      vec2DI(mag,ix,iz,nz,s_jm);
+      gain2arr[ix][iz] += gain2;
+      printf("Crossing: %d w/ mult %e, orig %e, mag %e, gain %e\n",m,exp(-1*vec3D(W,i,ix,iz,nx,nz)*vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz)*gain2/sqrt(epsilon)),
+      vec3D(W,i,ix,iz,nx,nz), vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz), gain2);
      // }
       //beam 2 CBET multiplier
       double newNRG1 =vec3D(W,i+1,ix,iz,nx,nz)*exp(-1*vec3D(W,i,ix,iz,nx,nz)*vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz)*gain1/sqrt(epsilon));

@@ -55,7 +55,7 @@ void gpuInit()
   //crossesz = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
   cudaMallocManaged(&crossesx, sizeof(int)*RAYS*ncrossings);
   //crossesx = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  cudaMallocManaged(&ints, sizeof(int)*RAYS*ncrossings*numstored);
+  cudaMallocManaged(&ints, sizeof(int)*RAYS*nrays*);
   //ints = new int[nbeams*nrays*ncrossings*numstored]; //nbeams nrays ncrossings
   cudaMallocManaged(&raypath, sizeof(int)*GRID);
   //raypath = new int[GRID];
@@ -73,7 +73,7 @@ void gpuInit()
   //Calculating the initial energy density, wpe, and machnum values
   span(x, xmin, xmax, nx);
   span(z, zmin, zmax, nz);
-  
+
   for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz;j++)

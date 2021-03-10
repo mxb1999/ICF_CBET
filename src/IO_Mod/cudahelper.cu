@@ -20,8 +20,21 @@ TrackArrs* deviceTrackArrs(int device)
   constArrs->edep_cu = edep;
   constArrs->wpe_cu = wpe;
   constArrs->boxes_cu = boxes;
+  constArrs->ints_cu = ints;
 
-  cudaMemAdvise(&constArrs, sizeof(TrackArrs), cudaMemAdviseSetReadMostly, device);
+  /*cudaError_t error = cudaMemPrefetchAsync(dedendx, sizeof(double)*nx*nz, device);
+  cudaMemPrefetchAsync(dedendz, sizeof(double)*GRID, device);
+  cudaMemPrefetchAsync(edep, sizeof(double)*(nx+2)*(nz+2)*RAYS, device);
+  cudaMemPrefetchAsync(wpe, sizeof(double)*GRID, device);
+  printf("%s\n", cudaGetErrorString(error));
+  cudaMemAdvise(x, sizeof(int)*nx, cudaMemAdviseSetReadMostly, device);
+  cudaMemAdvise(z, sizeof(int)*nz, cudaMemAdviseSetReadMostly, device);
+  cudaMemAdvise(dedendx, sizeof(double)*GRID, cudaMemAdviseSetReadMostly, device);
+  cudaMemAdvise(dedendz, sizeof(double)*GRID, cudaMemAdviseSetReadMostly, device);
+  cudaMemAdvise(edep, sizeof(double)*(nx+2)*(nz+2)*RAYS, cudaMemAdviseSetPreferredLocation, device);
+  cudaMemAdvise(wpe, sizeof(double)*GRID, cudaMemAdviseSetReadMostly, device);
+
+  cudaMemAdvise(constArrs, sizeof(TrackArrs), cudaMemAdviseSetReadMostly, device);*/
   return constArrs;
 }
 TrackConst* deviceTrackConst(int device)
@@ -51,7 +64,7 @@ TrackConst* deviceTrackConst(int device)
   constVals->ncrit_cu = ncrit;
 
   constVals->c_cu = c;
-  cudaMemAdvise(&constVals, sizeof(TrackConst), cudaMemAdviseSetReadMostly, device);
+  //cudaMemAdvise(constVals, sizeof(TrackConst), cudaMemAdviseSetReadMostly, device);
   return constVals;
 }
 //GPU IO handlers

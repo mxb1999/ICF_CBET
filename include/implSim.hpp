@@ -148,7 +148,11 @@
     //LinkedList* crossings;
     double intensity;
   };
-
+  struct CrossInfo
+  {
+    int ray;
+    int cross;
+  }
   //Values needed throughout simulation
   extern double maxDev;//stores maximum change in a given iteration, determines convergence
   //extern int beam;//stores which beam is currently being tracked
@@ -198,6 +202,7 @@
   //CBET specific arrays
   extern double* W;//nx nz
   extern double* W_init;//nx nz
+  extern double* edep_flat;
   extern double* W_new;//nx nz
   extern double* i_b;//nx nz
   extern double* i_b_prev;//nbeams nx nz

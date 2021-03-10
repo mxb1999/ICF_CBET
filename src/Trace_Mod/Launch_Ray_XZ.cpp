@@ -263,7 +263,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
       //Marked = trajectory of a single ray, Boxes = coordinates of each ray intersection
       for(int j = thisx_m; j <= thisx_p;j++)
       {
-        double currx = x[j];//-dx/2;//crossing into 
+        double currx = x[j]-dx/2;//-dx/2;//crossing into 
         //if the ray is currently between within the desired caustic zone for a crossing
         if((myx > currx && myxprev <= (currx + 1e-10)) || (myx < currx && myxprev >= (currx- 1e-10)))
         {
@@ -294,7 +294,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
       //Same idea as previous loop, but for the Z coordinate instead of x
         for(int j = thisz_m; j <= thisz_p;j++)//for [thisz_m, thisz_p] previous z locations, iterate through spatial locations centered on thisz
         {
-          double currz = z[j];//-dz/2;//center of the jth zone
+          double currz = z[j]-dz/2;//-dz/2;//center of the jth zone
           //printf("REE\n");
           if((myz > (currz) && myzprev < (currz + 1e-10)) || (myz < (currz) && myzprev > (currz - 1e-10)))//if myz is approximately equal to a zone crossing
           {
@@ -441,11 +441,14 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
     //  amplitude_norm[i] = (pow(omega,2.0)-pow(*(wpe[thisx_00]+thisz_00),2.0))/(pow(omega,2.0)-pow(pow(*(wpe[thisx]+thisz),2.0),(1./4.)));
     ///  #pragma omp atomic write
     //  mytime[i] = dt*i;
+      printf("%f %f\n", myx, myz);
       if ( (myx < (xmin-(dx/2.0))) || (myx > (xmax+(dx/2.0))))
       {
+        printf("Break X %f\n", myx);
         break;                  // "breaks" out of the i loop once the if condition is satisfied
       } else if ( (myz < (zmin-(dz/2.0))) || (myz > (zmax+(dz/2.0)))){
            // the "|" means "or" (symbol above the return key)
+        printf("Break Z %f\n", myz);
 
         break;
     }

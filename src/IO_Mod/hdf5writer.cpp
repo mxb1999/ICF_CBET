@@ -241,7 +241,7 @@ void updateH5()
   {
     cout << "Initializing plot arrays..." << endl;
   }
-  writePlotArrays();
+  //writePlotArrays();
   static H5File* store = new H5File(name, H5F_ACC_TRUNC);
   if(printUpdates)
   {
@@ -271,6 +271,21 @@ void updateH5()
   //Output arrays to be plotted in Python using included script'
   printf("Check 1\n");
   fflush(stdout);
+      edepplot = new double[nx*nz]{0.0};
+
+  for(int i = 0; i < nx;i++)
+  {
+    for(int j = 0; j < nz;j++)
+    {
+      double acc = 0.0;
+      for(int m = 0; m < nrays;m++)
+      {
+        acc+= vec4D(edep, 1,m,i,j,nrays,nx+2, nz+2);
+      }
+      acc = vec3D(edep_flat, 1,i,j,nx+2, nz+2) + vec3D(edep_flat, 0,i,j,nx+2, nz+2);
+      vec2DW(edepplot,i,j,nz, acc);
+    }
+  }
   //Core output arrays
   if(calcCBET)
   {
@@ -294,18 +309,18 @@ void updateH5()
   writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
   writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
-  writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
-  writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
-  writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
-  writeArr(edepplot, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//total intensity deposited
+  //writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
+  //writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
+  //writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
+  //writeArr(edepplot, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//total intensity deposited
 
   //Arrays useful for debugging
   //writeArr(orderplot1, 0, store, "/updated", 2, new int[2]{nx,nz});//stores all updated ray locations
   writeArr(raypath, 1, store, "/raypath", 2, new int[2]{nx,nz});//total intensity deposited
 
-  writeArr(raytrace, 1, store, "/raydist", 2, new int[2]{nx,nz});//all ray paths found
+  //writeArr(raytrace, 1, store, "/raydist", 2, new int[2]{nx,nz});//all ray paths found
 
-  writeArr(intersections, 1, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
+  //writeArr(intersections, 1, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
       printf("Check 2\n");
   fflush(stdout);
  

@@ -24,22 +24,23 @@ void trackRays()
   cudaMallocManaged(&raycoor, sizeof(rayinit)*RAYS);
     double interpTerm[nrays*nbeams];
 
-  #pragma omp parallel for num_threads(threads)
+  //#pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
   {
-
-    raycoor[i].xinit = xmin-(dt/courant_mult*c*0.5);;
-    raycoor[i].zinit = z0[i] + offset-((dz/2)+(dt/courant_mult*c*0.5));//initial z position of ray
-    raycoor[i].kxinit = 1.0;
-    raycoor[i].kzinit = 0;
-    raycoor[i].beam = 0;
-    double absX = raycoor[i].xinit-xmin;
-    double absZ = raycoor[i].zinit-zmin;
+    rayinit* curr = raycoor + i;
+    curr->xinit = xmin-(dt/courant_mult*c*0.5);
+    curr->zinit = z0[i] + offset-((dz/2)+(dt/courant_mult*c*0.5));//initial z position of ray
+    printf("%e %e\n", curr->xinit,curr->zinit);
+    curr->kxinit = 1.0;
+    curr->kzinit = 0;
+    curr->beam = 0;
+    double absX = curr->xinit-xmin;
+    double absZ = curr->zinit-zmin;
     int currX = (absX)/dx;
-    currX += ((raycoor[i].xinit-currX*dx) > 0.5);
+    currX += ((curr->xinit-currX*dx) > 0.5);
     int currZ = (absX)/dx;
-    currZ += ((raycoor[i].xinit-currX*dx) > 0.5);
-    raycoor[i].wpeinit = 0;
+    currZ += ((curr->xinit-currX*dx) > 0.5);
+    curr->wpeinit = 0;
     kz0[i] = 0;
     pow_x[i] = exp(-1*pow(pow(phase_x[i]/sigma,2.0),4.0/2.0));
     phase_x[i] += offset;
@@ -59,13 +60,13 @@ void trackRays()
   //#pragma omp parallel for num_threads(threads)
   for(int i = nrays; i < nrays*2; i++)
   {
-
-    raycoor[i].kxinit = 0;
-    raycoor[i].kzinit = 1.0;
-    raycoor[i].beam = 1;
-    raycoor[i].xinit = x0[i] - ((dx/2)+(dt/courant_mult*c*0.5));
-    raycoor[i].zinit = zmin-(dt/courant_mult*c*0.5);
-    raycoor[i].urayinit =  interp(phase_x, pow_x, raycoor[i].xinit, nrays)*uray_mult;
+    rayinit* curr = raycoor + i;
+    curr->kxinit = 0;
+    curr->kzinit = 1.0;
+    curr->beam = 1;
+    curr->xinit = x0[i] - ((dx/2)+(dt/courant_mult*c*0.5));
+    curr->zinit = zmin-(dt/courant_mult*c*0.5);
+    curr->urayinit =  interp(phase_x, pow_x, curr->xinit, nrays)*uray_mult;
     raycoor[i-nrays].urayinit =  interp(phase_x, pow_x, raycoor[i-nrays].zinit, nrays)*uray_mult;
     interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
     //phase_x[i] +=offset;
@@ -92,12 +93,12 @@ void trackRays()
   for(int i = 0; i < nrays*nbeams;i++)
   {
     int rnum = i%nrays;
-    double xinit = raycoor[i].xinit;
-    double zinit = raycoor[i].zinit;
-    double kxinit = raycoor[i].kxinit;
-    double kzinit = raycoor[i].kzinit;
-    beam = raycoor[i].beam;
-    double urayinit = raycoor[i].urayinit;
+    double xinit = curr->xinit;
+    double zinit = curr->zinit;
+    double kxinit = curr->kxinit;
+    double kzinit = curr->kzinit;
+    beam = curr->beam;
+    double urayinit = curr->urayinit;
 
     launch_ray_XZ(raycoor[i],rnum);
   }
@@ -185,7 +186,7 @@ void launchRays()
     {
       if(vec3D(edep,0,i,j,nx+2, nz+2) > 0 || vec3D(edep,1,i,j,nx+2, nz+2) > 0)
       {
-        printf("Edep: %e :: %e (%d, %d)\n",vec3D(edep,0,i,j,nx+2, nz+2),vec3D(edep,1,i,j,nx+2, nz+2),i,j);
+        //printf("Edep: %e :: %e (%d, %d)\n",vec3D(edep,0,i,j,nx+2, nz+2),vec3D(edep,1,i,j,nx+2, nz+2),i,j);
 
       }
     }
