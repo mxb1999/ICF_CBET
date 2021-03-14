@@ -163,6 +163,30 @@
   {
     arr[(a)*(d2)+(b)] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
+  template <typename T>
+  __forceinline__ __device__
+  void vec5DM_cu(T* arr, int a, int b, int c, int d,int e, int d2, int d3, int d4,int d5, T val)
+  {
+    arr[((((a)*(d2)+b)*(d3)+c)*(d4)+d)*(d5)+e] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  __forceinline__ __device__
+  void vec4DM_cu(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
+  {
+    arr[(((a)*(d2)+(b))*(d3)+(c))*(d4)+(d)] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  __forceinline__ __device__
+  void vec3DM_cu(T* arr, int a, int b, int c, int d2, int d3, T val)
+  {
+    arr[((a)*(d2)+(b))*(d3)+(c)] *= val;
+  }
+  template <typename T>
+  __forceinline__ __device__
+  void vec2DM_cu(T* arr, int a, int b, int d2, T val)
+  {
+    arr[(a)*(d2)+(b)] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
 
   
 #endif

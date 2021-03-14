@@ -20,7 +20,7 @@ H5FLAGS = -g -Wall -Werror -fopenmp -Iinclude#Compiler flags for h5c++
 CPPFLAGS= -g  -Wall -MMD -MP -Werror -fopenmp -lm #compiler flags for g++
 LIBS = 	-Iinclude -Iinclude/GPU -I/src/include -I/usr/include/python3.8 -lpython3.8 -I/usr/include/cuda  -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart -I/usr/include/hdf5/ -L/usr/lib/hdf5 -lhdf5 #Library Dependecies
 HLIBS =  -I/usr/include/hdf5/serial -L/usr/include/hdf5/serial#hdf5 libraries
-NVFLAGS =  -std=c++11 -g -G -Xcompiler -fopenmp -Xcompiler -fPIC
+NVFLAGS =  -std=c++11 -G -g -Xcompiler -fopenmp -Xcompiler -fPIC
 _MAINOBJ = implSim.o #Main execution files not involved with any individual module
 MAINOBJ = $(patsubst %,$(ODIR)/%,$(_MAINOBJ))
 
