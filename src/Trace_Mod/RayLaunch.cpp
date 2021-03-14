@@ -30,7 +30,6 @@ void trackRays()
     rayinit* curr = raycoor + i;
     curr->xinit = xmin-(dt/courant_mult*c*0.5);
     curr->zinit = z0[i] + offset-((dz/2)+(dt/courant_mult*c*0.5));//initial z position of ray
-    printf("%e %e\n", curr->xinit,curr->zinit);
     curr->kxinit = 1.0;
     curr->kzinit = 0;
     curr->beam = 0;
@@ -180,19 +179,18 @@ void fillMarked()
 void launchRays()
 {
   trackRays();
-  for(int i= 0; i< nx+2; i++)
+  //fillMarked();
+
+  updateIntersections();
+  for(int i = 0; i < nx; i++)
   {
-    for(int j= 0; j< nz+2; j++)
+    for(int j = 0; j < nz; j++)
     {
-      if(vec3D(edep,0,i,j,nx+2, nz+2) > 0 || vec3D(edep,1,i,j,nx+2, nz+2) > 0)
+      if(vec3D(edep_flat,0,i,j,nx+2,nz+2) + vec3D(edep_flat,1,i,j,nx+2,nz+2) > 0)
       {
-        //printf("Edep: %e :: %e (%d, %d)\n",vec3D(edep,0,i,j,nx+2, nz+2),vec3D(edep,1,i,j,nx+2, nz+2),i,j);
+       //printf("(%d %d)\n", i,j);
 
       }
     }
   }
-  //fillMarked();
-
-  updateIntersections();
-
 }

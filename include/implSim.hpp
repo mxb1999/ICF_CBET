@@ -21,6 +21,7 @@
   #define GRID nx*nz
   #define RAYS nbeams*nrays
   #define CROSS nbeams*nrays*ncrossings
+  
 //#include "LinkedList.h"
 
     //Functions
@@ -39,23 +40,23 @@
   template <typename T>
   inline T vec3D(T* arr, int a, int b, int c, int d2, int d3)
   {
-    return arr[((a)*d2+b)*d3+c];
+    return arr[((a)*(d2)+b)*(d3)+c];
   }
   template <typename T>
   inline T vec2D(T* arr, int a, int b, int d2)
   {
-    return arr[(a)*d2+b];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+    return arr[(a)*(d2)+b];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
   template <typename T>
   inline T* vec4DP(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
   {
-    return arr + (((a)*d2+b)*d3+c)*d4+d;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+    return arr + (((a)*(d2)+b)*(d3)+c)*(d4)+d;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
 
   template <typename T>
   inline T* vec3DP(T* arr, int a, int b, int c, int d2, int d3)
   {
-    return arr + ((a)*d2+b)*d3+c;
+    return arr + ((a)*(d2)+b)*(d3)+c;
   }
   template <typename T>
   inline T* vec2DP(T* arr, int a, int b, int d2)
@@ -148,11 +149,7 @@
     //LinkedList* crossings;
     double intensity;
   };
-  struct CrossInfo
-  {
-    int ray;
-    int cross;
-  }
+  
   //Values needed throughout simulation
   extern double maxDev;//stores maximum change in a given iteration, determines convergence
   //extern int beam;//stores which beam is currently being tracked
@@ -186,7 +183,7 @@
   extern double* x; //nx
   extern double* z; //nz
   extern double* eden; //nx nz
-  
+  extern int* numrays;
   //Marked Stores which rays from each beam have passed through each zone
   //Boxes Stores whi
   extern double* edep; //nx+2 nz+2 nbeams

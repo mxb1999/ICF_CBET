@@ -3,18 +3,6 @@
 using namespace std;
 
 
-
-
-CrossInfo* new_CrossInfo(int r, int c)
-{
-  CrossInfo* curr = new CrossInfo;
-  if(!curr)
-    return NULL;
-  curr->ray = r;
-  curr->cross = c;
-  return curr;
-}; 
-
 //main function called in program
 int main(int argc, char const *argv[]) {
   /*

@@ -91,6 +91,7 @@ int* raytrace;//nx nz
 double* ib_orig;//nx nz
 int* anyInt;//nx nz
 double* perturbation;//nx nz
+int* numrays;
   //derivative values
   //double mi_kg,mi,uray_mult,dt,dx,dz,freq,omega,ncrit;
   //int nrays,nt,numstored,ncrossings;

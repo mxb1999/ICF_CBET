@@ -306,6 +306,40 @@ void updateH5()
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   }
+  double* WPlot = new double[GRID]{0.0};
+  int i = 0;
+  for(int j = 0; j < nrays;j++)
+  {
+    for(int m = 0; m < ncrossings;m++)
+    {
+      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
+      if(!boxx || !boxz)
+      {
+        break;
+      }
+      boxx--;
+      boxz--;
+      WPlot[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings) ;//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+    }
+  }
+  i = 1;
+  for(int j = 0; j < nrays;j++)
+  {
+    for(int m = 0; m < ncrossings;m++)
+    {
+      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
+      if(!boxx || !boxz)
+      {
+        break;
+      }
+      boxx--;
+      boxz--;
+      WPlot[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings) ;//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+    }
+  }
+  writeArr(WPlot, 0, store, "/energy", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
   writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
   writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates

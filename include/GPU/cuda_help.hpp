@@ -2,7 +2,9 @@
 //define other functions necessary for GPU operation
 #ifndef CUDAHELP
 #define CUDAHELP
-  #include "implSim.hpp"
+  #include <vector>
+  #include <string>
+  #include <cuda_runtime.h>
   //extern __device__ double c_cu, lambda_cu, estat_cu,mach_cu,Z_cu,mi_cu,mi_kg_cu,Te_cu,Te_eV_cu,Ti_cu,Ti_eV_cu,iaw_cu,ncrit_cu,freq_cu,omega_cu;
   //spatial information
   //extern __device__ int nx_cu, nz_cu;
@@ -69,7 +71,12 @@
   {
     return arr[(((a)*d2+b)*d3+c)*d4+d];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
-
+  template <typename T>
+  __forceinline__ __device__
+  void vec5D_cu(T* arr, int a, int b, int c, int d,int e, int d2, int d3, int d4,int d5, T val)
+  {
+    return arr[((((a)*(d2)+b)*(d3)+c)*(d4)+d)*(d5)+e];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
   template <typename T>
   __forceinline__ __device__ 
   T vec3D_cu(T* arr, int a, int b, int c, int d2, int d3)
@@ -87,6 +94,12 @@
   T* vec4DP_cu(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
   {
     return arr + (((a)*d2+b)*d3+c)*d4+d;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  __forceinline__ __device__
+  void vec5DP_cu(T* arr, int a, int b, int c, int d,int e, int d2, int d3, int d4,int d5, T val)
+  {
+    return arr+((((a)*(d2)+b)*(d3)+c)*(d4)+d)*(d5)+e;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
 
   template <typename T>
@@ -108,7 +121,12 @@
   {
     arr[(((a)*d2+b)*d3+c)*d4+d] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
-
+  template <typename T>
+  __forceinline__ __device__
+  void vec5DW_cu(T* arr, int a, int b, int c, int d,int e, int d2, int d3, int d4,int d5, T val)
+  {
+    arr[((((a)*(d2)+b)*(d3)+c)*(d4)+d)*(d5)+e] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
   template <typename T>
   __forceinline__ __device__
   void vec3DW_cu(T* arr, int a, int b, int c, int d2, int d3, T val)
@@ -121,7 +139,12 @@
   {
     arr[(a)*(d2)+(b)] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
-
+  template <typename T>
+  __forceinline__ __device__
+  void vec5DI_cu(T* arr, int a, int b, int c, int d,int e, int d2, int d3, int d4,int d5, T val)
+  {
+    arr[((((a)*(d2)+b)*(d3)+c)*(d4)+d)*(d5)+e] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
   template <typename T>
   __forceinline__ __device__
   void vec4DI_cu(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)

@@ -124,6 +124,7 @@ void setInitParams()//import configuration file
   freq = c/lambda;		// frequency of light, in Hz
   omega = 2*pi*freq;	// frequency of light, in rad/s
   ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));
+  cs = 1e2*sqrt(ec*(Z*Te_eV+3.0*Ti_eV)/mi_kg);
 }
 //dynamically allocate and initialize the arrays
 void initialize()
@@ -175,11 +176,12 @@ void initialize()
   //crossesz = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
   cudaMallocManaged(&crossesx, sizeof(double)*RAYS*ncrossings);
   //crossesx = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  cudaMallocManaged(&ints, sizeof(CrossInfo)*RAYS*numstored);
+  cudaMallocManaged(&ints, sizeof(int)*CROSS*numstored);
   //ints = new int[nbeams*nrays*ncrossings*numstored]; //nbeams nrays ncrossings
   cudaMallocManaged(&raypath, sizeof(int)*GRID);
   //raypath = new int[GRID];
-  cudaMallocManaged(&mult, sizeof(double)*RAYS*ncrossings);
+  cudaMallocManaged(&mult, sizeof(double)*CROSS);
+  cudaMallocManaged(&numrays, sizeof(int)*CROSS*(nbeams));
   //mult = new double[nbeams*nrays*ncrossings]{1.0};
   for(int i = 0; i < RAYS*ncrossings;i++)
   {
@@ -200,6 +202,7 @@ void initialize()
   {
     for(int j = 0; j < nz;j++)
     {
+      vec2DW(present, i,j,nz,0);
       //eden[i][j] = temp[i];
       double temp = fmax(0.0,((0.3*ncrit-0.1*ncrit)/(xmax-xmin))*(x[i]-xmin)+(0.1*ncrit));
       vec2DW(eden,i,j,nz,temp);

@@ -1,4 +1,5 @@
 #include "cuda_var_init.hpp"
+#include "implSim.hpp"
 /*__device__ double mi_kg_cu = 10230.0*me_cu;	   // Mass of ion in kg
 __device__ double mi_cu = 10230*(1.0e3*me_cu);          // Mass of ion in g
 __device__ double uray_mult_cu = intensity_cu*(courant_mult_cu)*pow(double(rays_per_zone_cu),-1.0); //multiplier which determines intensity deposited in a given zone
@@ -55,7 +56,7 @@ void gpuInit()
   //crossesz = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
   cudaMallocManaged(&crossesx, sizeof(int)*RAYS*ncrossings);
   //crossesx = new double[nbeams*nrays*ncrossings]; //nbeams nrays ncrossings
-  cudaMallocManaged(&ints, sizeof(int)*RAYS*nrays*);
+  cudaMallocManaged(&ints, sizeof(int)*RAYS*nrays*ncrossings);
   //ints = new int[nbeams*nrays*ncrossings*numstored]; //nbeams nrays ncrossings
   cudaMallocManaged(&raypath, sizeof(int)*GRID);
   //raypath = new int[GRID];

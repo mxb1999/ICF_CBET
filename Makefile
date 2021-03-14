@@ -24,7 +24,7 @@ NVFLAGS =  -std=c++11 -g -G -Xcompiler -fopenmp -Xcompiler -fPIC
 _MAINOBJ = implSim.o #Main execution files not involved with any individual module
 MAINOBJ = $(patsubst %,$(ODIR)/%,$(_MAINOBJ))
 
-_CBETOBJ = cbet.o #CBET Module source files
+_CBETOBJ = cbet.o fillArrays.o#CBET Module source files
 CBETOBJ = $(patsubst %,$(ODIR)/%,$(_CBETOBJ))
 
 _TRACEOBJ = Launch_Ray_XZ.o RayLaunch.o#Ray tracking module source files
@@ -42,7 +42,7 @@ IOOBJ = $(patsubst %,$(ODIR)/%,$(_IOOBJ))
 _LIBOBJ =  customMath.o #Core IO module source files
 LIBOBJ = $(patsubst %,$(ODIR)/%,$(_LIBOBJ))
 
-_CUOBJ = trackray.o GPU_Init.o cudahelper.o
+_CUOBJ = trackray.o GPU_Init.o cudahelper.o cbet.o
 CUOBJ = $(patsubst %,$(CU_ODIR)/%,$(_CUOBJ))
 
 $(ODIR)/%.o: $(SRCDIR)/%.cpp  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
@@ -64,6 +64,8 @@ $(CU_ODIR)/%.o: $(TRACE_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DI
 $(CU_ODIR)/%.o: $(INIT_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
 	$(NV) -c $(NVFLAGS) -rdc=true $^ -o $@  $(LIBS)
 $(CU_ODIR)/%.o: $(IO_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
+	$(NV) -c $(NVFLAGS) -rdc=true $^ -o $@  $(LIBS)
+$(CU_ODIR)/%.o: $(CBET_DIR)/%.cu#$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
 	$(NV) -c $(NVFLAGS) -rdc=true $^ -o $@  $(LIBS)
 
 FILEGROUP = $(INITOBJ) $(MAINOBJ) $(LIBOBJ) $(CBETOBJ) $(TRACEOBJ)  $(IOOBJ)

@@ -459,7 +459,7 @@ void calculateMult(int ix, int iz, int i, int j, int m, int* numrays, int* marke
    double P = (pow((iaw),2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw),2)*pow(eta,2));         // From Russ's paper
    double gain1 = constant1*pow(efield2,2)*(ne/ncrit)*(1/iaw)*P;               //L^-1 from Russ's paper
    double sum1 = 0;
-   //double gain2 = constant1*pow(efield1,2)*(ne/ncrit)*(1/iaw)*P;
+   double gain2 = constant1*pow(efield1,2)*(ne/ncrit)*(1/iaw)*P;
             //L^-1 from Russ's paper
 
                     // new energy of crossing (PROBE) ray (beam 2)
@@ -474,7 +474,7 @@ void calculateMult(int ix, int iz, int i, int j, int m, int* numrays, int* marke
 
       vec2DI(gain1arr,ix,iz,nz,gain1);
       vec2DI(mag,ix,iz,nz,s_jm);
-      gain2arr[ix][iz] += gain2;
+      //gain2arr[ix][iz] += gain2;
       printf("Crossing: %d w/ mult %e, orig %e, mag %e, gain %e\n",m,exp(-1*vec3D(W,i,ix,iz,nx,nz)*vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz)*gain2/sqrt(epsilon)),
       vec3D(W,i,ix,iz,nx,nz), vec3D(dkmag,i+1,markerVal,markerCVal,nx,nz), gain2);
      // }
@@ -485,7 +485,7 @@ void calculateMult(int ix, int iz, int i, int j, int m, int* numrays, int* marke
       vec3DWA(W_new,i,ix,iz,nx,nz, newNRG2);
       //beam 1 CBET multiplier
       
- //   }
+    }
   }
 }
 //updating CBET Intensities
@@ -730,7 +730,18 @@ void update_CBETPar()
 }
 void cbet()
 {
-
+  launchCBETKernel();
+  for(int i = 0; i < nbeams;i++)
+  {
+    for(int j = 0; j < nrays; j++)
+    {
+      for(int m = 0; m < ncrossings;m++)
+      {
+        
+      }
+    }
+  }
+  /*
   //Used to track ray updates for beam 1, can be switched in the CBET function
 
   //Initialize the arrays:
@@ -771,5 +782,5 @@ void cbet()
   {
     cout << "CBET Initialization Time: " << chrono::duration_cast<chrono::milliseconds>(inter-start).count() << " ms" << endl;
     cout << "CBET Calculation Time: " << chrono::duration_cast<chrono::milliseconds>(end-inter).count() << " ms" << endl;
-  }
+  }*/
 }
