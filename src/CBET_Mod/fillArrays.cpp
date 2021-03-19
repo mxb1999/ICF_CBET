@@ -62,13 +62,13 @@ CBETArrs* new_cbetArrs()
 void initArrays()
 {
     //Allocate global memory for relevant arrays
-    cudaMallocManaged(&i_b, sizeof(double)*CROSS);
     cudaMallocManaged(&i_b_prev, sizeof(double)*CROSS*RAYS);
     cudaMallocManaged(&i_b_new, sizeof(double)*CROSS);
     cudaMallocManaged(&W_new, sizeof(double)*CROSS);
     cudaMallocManaged(&W, sizeof(double)*CROSS);
-
+    cudaMallocManaged(&i_b, sizeof(double)*CROSS);
       //Initialize CBET array values
+  double area = dx*dz;
   for(int m = 0; m < nbeams; m++)
   {
     //#pragma omp parallel for num_threads(threads)
@@ -80,15 +80,15 @@ void initArrays()
         int boxz = vec4D(boxes, m,i,j,1,nrays,ncrossings,2);
         if(!boxx || !boxz)
         {
-          break;
+          continue;
         }
         boxx--;
         boxz--;
-        double energyDep = vec3D(edep_flat,m,boxx,boxz,nx+2,nz+2);//break up pipeline to prevent RAW dependencies
+        double energyDep = vec3D(edep_flat,m,boxx,boxz,nx+2,nz+2)/vec3D(present,m,boxx,boxz, nx,nz);//break up pipeline to prevent RAW dependencies
         double initEnergy = sqrt(1.0-vec2D(eden,boxx,boxz,nz)/ncrit);
-        vec3DW(i_b,m,i,j,nrays, ncrossings, energyDep);///present[m][i][j];
         vec3DW(i_b_new,m,i,j,nrays, ncrossings, energyDep);///present[m][i][j];
         vec3DW(W,m,i,j,nrays,ncrossings, initEnergy);///present[m][i][j];
+        vec3DW(i_b,m,i,j,nrays, ncrossings, energyDep);///present[m][i][j];
         vec3DW(W_new,m,i,j,nrays,ncrossings, initEnergy);///present[m][i][j];
         double flownum = vec2D(machnum,boxx,boxz,nz)*cs;
         vec2DW(u_flow,boxx,boxz,nz, flownum); //

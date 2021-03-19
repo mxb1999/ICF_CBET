@@ -102,4 +102,9 @@ deb install:
 
 run:
 	make
-	./implSim $1
+	./implSim
+
+.phony:plot
+
+plot:
+	python matplotting.py

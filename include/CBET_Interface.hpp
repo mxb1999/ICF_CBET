@@ -10,7 +10,6 @@
   extern void launchCBETKernel();
 
 
-  
   struct CBETVars
   {
     double estat_cu;

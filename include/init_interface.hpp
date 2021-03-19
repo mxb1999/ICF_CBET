@@ -70,6 +70,8 @@ double* W_new;//nx nz
 double* i_b;//nx nz
 double* i_b_prev; //nbeams nx nz
 double* i_b_new;//nx nz
+  double* wMult;
+
 double* wpe; //nx nz
 double* crossesz; //nbeams nrays ncrossings
 double* crossesx; //nbeams nrays ncrossings

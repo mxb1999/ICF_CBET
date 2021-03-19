@@ -15,7 +15,6 @@
   #include <omp.h>
   #include <chrono>
   #include <cmath>
-  #include <cuda_runtime.h>
   #include "parallelConfig.hpp"
   #include "customMath.hpp"
   #define GRID nx*nz
@@ -96,7 +95,21 @@
     arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
 
-
+  template <typename T>
+  inline void vec4DM(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
+  {
+    arr[(((a)*d2+b)*d3+c)*d4+d] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
+  template <typename T>
+  inline void vec3DM(T* arr, int a, int b, int c, int d2, int d3, T val)
+  {
+    arr[((a)*d2+b)*d3+c] *= val;
+  }
+  template <typename T>
+  inline void vec2DM(T* arr, int a, int b, int d2, T val)
+  {
+    arr[(a)*d2+b] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+  }
   template <typename T>
   inline void vec4DWA(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
   {
@@ -179,6 +192,8 @@
   extern int* marked; //nx nz nbeams Stored as a 1D array, saved SIGNIFICANT amount of time in initialization
   extern double* dedendx; //nx nz
   extern double* dedendz; //nx nz
+  extern double* wMult;
+
   extern int* raypath; //nx nz store single ray path
   extern double* x; //nx
   extern double* z; //nz

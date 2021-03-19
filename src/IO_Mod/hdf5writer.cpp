@@ -299,14 +299,16 @@ void updateH5()
   writeArr(W+(nx*nz), 0, store, "/original_energy2", 2, new int[2]{nx,nz});//original energy deposited
    
   writeArr(anyInt, 1, store, "/nonZero", 2, new int[2]{nx,nz});//stores any location where a ray has been as one
-  writeArr(i_b, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
-  writeArr(i_b+(nx*nz), 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
+  
   writeArr(multArr, 0, store, "/gain1", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(gain2arr, 0, store, "/gain2", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   }
-  double* WPlot = new double[GRID]{0.0};
+  double* WPlot1 = new double[GRID]{0.0};
+  double* WPlot2 = new double[GRID]{0.0};
+  double* WPlotTotal = new double[GRID]{0.0};
+
   int i = 0;
   for(int j = 0; j < nrays;j++)
   {
@@ -320,7 +322,12 @@ void updateH5()
       }
       boxx--;
       boxz--;
-      WPlot[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings) ;//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      
+        WPlot1[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+        WPlotTotal[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      
+      
     }
   }
   i = 1;
@@ -336,10 +343,23 @@ void updateH5()
       }
       boxx--;
       boxz--;
-      WPlot[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings) ;//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      
+        WPlot2[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+        WPlotTotal[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      
     }
   }
-  writeArr(WPlot, 0, store, "/energy", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
+  /*for(int i = 0; i < nx;i++)
+  {
+    for(int j = 0; j < nz;j++)
+    {
+      WPlot[i*nz+j] = (vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+    }
+  }*/
+  writeArr(WPlotTotal, 0, store, "/energy", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
+  writeArr(WPlot1, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
+  writeArr(WPlot2, 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
   writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
@@ -351,9 +371,6 @@ void updateH5()
   //Arrays useful for debugging
   //writeArr(orderplot1, 0, store, "/updated", 2, new int[2]{nx,nz});//stores all updated ray locations
   writeArr(raypath, 1, store, "/raypath", 2, new int[2]{nx,nz});//total intensity deposited
-
-  //writeArr(raytrace, 1, store, "/raydist", 2, new int[2]{nx,nz});//all ray paths found
-
   //writeArr(intersections, 1, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
       printf("Check 2\n");
   fflush(stdout);
