@@ -14,6 +14,7 @@
   //spatial information
   int nx, nz;
   double xmin, xmax, zmin, zmax, dx, dz;
+  int cudaCalc;
 
   double maxIncr, converge;
   int threads,maxIter;

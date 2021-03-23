@@ -22,6 +22,7 @@ int* getVarI(string target)
   stringmap["nbeams"] = &nbeams;
   stringmap["rays_per_zone"] = &rays_per_zone;
   stringmap["switchvar"] = &switchvar;
+  stringmap["cudaCalc"] = &cudaCalc;
 
   int s = stringmap.size();
   int* result = stringmap[target];
@@ -117,7 +118,6 @@ void setInitParams()//import configuration file
   dz = (zmax-zmin)/(nz-1);//dimensions of a single cell
   dx = (xmax-xmin)/(nx-1);
   nrays= int(rays_per_zone*(beam_max_z-beam_min_z)/dz)+0;//number of rays per beam
-  nrays = 3599;
   dt=courant_mult*fmin(dx,dz)/c;//time stepping
   nt=int(pow(courant_mult,-1.0)*fmax(nx,nz)*2.0)+1;//number of time steps to track for a given ray
   numstored = nx*6;//number of rays stored per grid zone

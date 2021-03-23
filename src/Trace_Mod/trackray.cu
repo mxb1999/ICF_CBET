@@ -226,10 +226,6 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
               lastz = currz;
 
               numcrossing += 1;
-              if(raynum == 40 && beam == 1)
-              {
-                printf("%d: %e %e\n",numcrossing, myx-thisInit.xinit,myz-thisInit.zinit);
-              }
               break;
             }
           }

@@ -1,4 +1,5 @@
 #include "Trace_interface.hpp"
+
 using namespace std;
 
 #define MAG(x,z) sqrt(pow(x,2) + pow(z,2))
