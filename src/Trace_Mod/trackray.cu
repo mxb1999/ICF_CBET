@@ -116,10 +116,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
     //looping through time intervals
     for(int i = 1; i < nt_cu;i++)
     {
-      if(raynum == 20 && beam == 1)
-      {
-        raypath[thisx*nz_cu + thisz] = 1;
-      }
+      
       double forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);
       double forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
 

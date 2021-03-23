@@ -205,7 +205,6 @@ void writePlotArrays()
     i_b_newplot = new double[nx*nz]{0.0};
     edepplot = new double[nx*nz]{0.0};
     edenplot = new double[nx*nz]{0.0};
-    raytrace = new int[nx*nz]{0};
     ib_orig = new double[nx*nz]{0.0};
     anyInt = new int[nx*nz];
     perturbation = new double[nx*nz];
@@ -221,7 +220,6 @@ void writePlotArrays()
         vec2DW(perturbation,i,j,nz, fmax(vec3D(W_new,0,i,j,nx,nz), vec3D(W_new,1,i,j,nx,nz)) - sqrt(1.0-vec2D(eden,i,j,nz)/ncrit)/double(rays_per_zone));
 
         }
-        vec2DW(raytrace,i,j,nz, vec3D(present,1,i,j,nx,nz)+vec3D(present,0,i,j,nx,nz));//+vec3D(present,0,i,j,nx,nz);
         vec2DW(ib_orig,i,j,nz, 8.53e-10*sqrt(vec3D(edep,0,i,j,nx,nz)+vec3D(edep,1,i,j,nx,nz)+1.0e-10)*(1.053/3.0));
         if(vec2D(intersections,i,j,nz)> 0)
         {
@@ -247,26 +245,6 @@ void updateH5()
   {
     cout << "File Opened" << endl;
     cout << "Starting Write..." << endl;
-  }
-  double** multArr = new double*[nx];
-  for(int i = 0; i < nx;i++)
-  {
-    multArr[i] = new double[nz];
-  }
-  for(int i = 0; i < nrays;i++)
-  {
-    for(int j = 0; j < ncrossings; j++)
-    {
-      int boxx = vec4D(boxes, 0,i,j,0,nrays,ncrossings,2);
-      int boxz = vec4D(boxes, 0,i,j,1,nrays,ncrossings,2);
-      if(!boxx || !boxz)
-      {
-        break;
-      }
-      boxx--;
-      boxz--;
-      multArr[boxx][boxz] = mult[i*ncrossings+j];
-    }
   }
   //Output arrays to be plotted in Python using included script'
   printf("Check 1\n");
@@ -300,7 +278,6 @@ void updateH5()
    
   writeArr(anyInt, 1, store, "/nonZero", 2, new int[2]{nx,nz});//stores any location where a ray has been as one
   
-  writeArr(multArr, 0, store, "/gain1", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(gain2arr, 0, store, "/gain2", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
