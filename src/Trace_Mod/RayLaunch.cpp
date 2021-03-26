@@ -4,6 +4,7 @@ using namespace std;
 //uses x0 and z0 arrays to initialize the ray positions, then launches via Launch_Ray_XZ()
 void trackRays()
 {
+  fillTraceArrays();
   if(printUpdates)
   {
     cout << "Tracking Rays" << endl;
@@ -181,16 +182,4 @@ void launchRays()
   trackRays();
   //fillMarked();
 
-  updateIntersections();
-  for(int i = 0; i < nx; i++)
-  {
-    for(int j = 0; j < nz; j++)
-    {
-      if(vec3D(edep_flat,0,i,j,nx+2,nz+2) + vec3D(edep_flat,1,i,j,nx+2,nz+2) > 0)
-      {
-       //printf("(%d %d)\n", i,j);
-
-      }
-    }
-  }
 }

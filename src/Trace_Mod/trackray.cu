@@ -116,10 +116,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
     //looping through time intervals
     for(int i = 1; i < nt_cu;i++)
     {
-      if(raynum == 20 && beam == 1)
-      {
-        raypath[thisx*nz_cu + thisz] = 1;
-      }
+      
       double forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);
       double forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
 
@@ -226,10 +223,6 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
               lastz = currz;
 
               numcrossing += 1;
-              if(raynum == 40 && beam == 1)
-              {
-                printf("%d: %e %e\n",numcrossing, myx-thisInit.xinit,myz-thisInit.zinit);
-              }
               break;
             }
           }
@@ -240,7 +233,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
         //markingx = thisx;
         //markingz = thisz;
         //Deposit energy due to the incident ray
-  	    double increment = thisInit.urayinit;
+  	    /*double increment = thisInit.urayinit;
         double xp = (myx - (x_cu[thisx]+dx_cu/2.0))/dx_cu;
         double zp = (myz - (z_cu[thisz]+dz_cu/2.0))/dz_cu;
         int xadd = (xp >= 0) ? 1 : -1;
@@ -262,7 +255,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
         vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a3*increment);// yellow
         vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a4*increment);	// red
 
-        
+        */
         thisInit.xinit = myx;
         thisInit.zinit = myz;
         myvxprev = myvx;
@@ -348,9 +341,9 @@ locateInts(TrackConst val, TrackArrs arr, double* edep_flat, int* numrays_cu, in
   int nbeams_cu = val.nbeams_cu;
   int* ints_cu = arr.ints_cu;
   int* boxes_cu = arr.boxes_cu;
-  double* edep_cu = arr.edep_cu;
+  //double* edep_cu = arr.edep_cu;
   int index = blockDim.x*blockIdx.x+threadIdx.x;
-  
+  /*
   int ix = index / (nz_cu+2);
   int iz = index % (nz_cu+2);
   if(ix < nx_cu + 2 && iz < nz_cu + 2)
@@ -365,7 +358,7 @@ locateInts(TrackConst val, TrackArrs arr, double* edep_flat, int* numrays_cu, in
     vec3DW_cu(edep_flat, 0,ix,iz,nx_cu+2,nz_cu+2,acc0);
     vec3DW_cu(edep_flat, 1,ix,iz,nx_cu+2,nz_cu+2,acc1);
   }
-
+*/
   //flattenEdep(edep_cu, edep_flat, 1, 4, nbeams_cu, nrays_cu, (nx_cu+2), (nz_cu+2));
   //collapseEdep_CU();
   //Locate all intersections
@@ -436,7 +429,7 @@ __global__ void
 fillTempMarked(double* edep_cu, double* edep_flat, int* markedTemp_cu, int* boxes_cu, int nrays_cu, int nbeams_cu, int ncrossings_cu, int nx_cu, int nz_cu)//marked temp indexed by rays
 {
   int index = threadIdx.x + blockDim.x*blockIdx.x;
-  int ix = index / (nz_cu+2);
+  /*int ix = index / (nz_cu+2);
   int iz = index % (nz_cu+2);
   if(ix < nx_cu + 2 && iz < nz_cu + 2)
   {
@@ -450,7 +443,7 @@ fillTempMarked(double* edep_cu, double* edep_flat, int* markedTemp_cu, int* boxe
     vec3DW_cu(edep_flat, 0,ix,iz,nx_cu+2,nz_cu+2,acc0);
     vec3DW_cu(edep_flat, 1,ix,iz,nx_cu+2,nz_cu+2,acc1);
   }
-
+*/
   int beam = index/nrays_cu;
   if(beam >= nbeams_cu)
   {
@@ -471,7 +464,7 @@ fillTempMarked(double* edep_cu, double* edep_flat, int* markedTemp_cu, int* boxe
   }
 }
 __global__ void
-fillMarked(int* present_cu,int* marked_cu, int* markedTemp_cu, int nrays_cu, int numstored_cu, int nbeams_cu, int nx_cu, int nz_cu, int stepx, int stepz, int* check)//marked temp indexed by rays
+fillMarked(int* present_cu,int* marked_cu, int* markedTemp_cu, int nrays_cu, int numstored_cu, int nbeams_cu, int nx_cu, int nz_cu, int stepx, int stepz)//marked temp indexed by rays
 {
   int index = threadIdx.x + blockDim.x*blockIdx.x;
   int startx = (index)/nz_cu;
@@ -480,7 +473,6 @@ fillMarked(int* present_cu,int* marked_cu, int* markedTemp_cu, int nrays_cu, int
   {
     return;
   }
-  check[startx*nz_cu+startz] = 1;
   
   //printf("(%d, %d): %p %p\n", startx, startz,present_cu, present_cu+nx_cu*nz_cu*nbeams_cu);
   int checkbool = 0;
@@ -506,6 +498,7 @@ fillMarked(int* present_cu,int* marked_cu, int* markedTemp_cu, int nrays_cu, int
     
   }
 }
+
 void LaunchCUDARays(rayinit* rays)
 { 
   TrackConst constVals = *deviceTrackConst(0);
@@ -529,8 +522,6 @@ void LaunchCUDARays(rayinit* rays)
   {
     marked[i] = 0;
   }
-  int* check;
-  cudaMallocManaged(&check, sizeof(int)*GRID);
   std::cout << "Track Time: " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() << std::endl;
   int indReq = fmax(nrays*nbeams, (nx+2) * (nz+2));
   int B = indReq/256+1;
@@ -541,11 +532,13 @@ void LaunchCUDARays(rayinit* rays)
   B = (nx*nz)/256 + 1;
   B += (B == 0);
   printf("B %d T %d\n", B, 256);
-  fillMarked<<<B, 256>>>(present, marked, markedTemp, nrays, numstored, nbeams, nx, nz, 1,1, check);
+  fillMarked<<<B, 256>>>(present, marked, markedTemp, nrays, numstored, nbeams, nx, nz, 1,1);
   cudaDeviceSynchronize();
   endlaunch = std::chrono::high_resolution_clock::now();
   std::cout << "IntLocation Time: " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() << std::endl;
-  //cudaFree(edep);//free arrays no longer needed
-  cudaFree(dedendx);
-  cudaFree(dedendz);
+  cudaError_t err = cudaFree(markedTemp);
+  if(err)
+  {
+    printf("%s\n", cudaGetErrorString(err));
+  }
 }

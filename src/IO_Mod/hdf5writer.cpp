@@ -205,7 +205,6 @@ void writePlotArrays()
     i_b_newplot = new double[nx*nz]{0.0};
     edepplot = new double[nx*nz]{0.0};
     edenplot = new double[nx*nz]{0.0};
-    raytrace = new int[nx*nz]{0};
     ib_orig = new double[nx*nz]{0.0};
     anyInt = new int[nx*nz];
     perturbation = new double[nx*nz];
@@ -221,7 +220,6 @@ void writePlotArrays()
         vec2DW(perturbation,i,j,nz, fmax(vec3D(W_new,0,i,j,nx,nz), vec3D(W_new,1,i,j,nx,nz)) - sqrt(1.0-vec2D(eden,i,j,nz)/ncrit)/double(rays_per_zone));
 
         }
-        vec2DW(raytrace,i,j,nz, vec3D(present,1,i,j,nx,nz)+vec3D(present,0,i,j,nx,nz));//+vec3D(present,0,i,j,nx,nz);
         vec2DW(ib_orig,i,j,nz, 8.53e-10*sqrt(vec3D(edep,0,i,j,nx,nz)+vec3D(edep,1,i,j,nx,nz)+1.0e-10)*(1.053/3.0));
         if(vec2D(intersections,i,j,nz)> 0)
         {
@@ -248,32 +246,12 @@ void updateH5()
     cout << "File Opened" << endl;
     cout << "Starting Write..." << endl;
   }
-  double** multArr = new double*[nx];
-  for(int i = 0; i < nx;i++)
-  {
-    multArr[i] = new double[nz];
-  }
-  for(int i = 0; i < nrays;i++)
-  {
-    for(int j = 0; j < ncrossings; j++)
-    {
-      int boxx = vec4D(boxes, 0,i,j,0,nrays,ncrossings,2);
-      int boxz = vec4D(boxes, 0,i,j,1,nrays,ncrossings,2);
-      if(!boxx || !boxz)
-      {
-        break;
-      }
-      boxx--;
-      boxz--;
-      multArr[boxx][boxz] = mult[i*ncrossings+j];
-    }
-  }
   //Output arrays to be plotted in Python using included script'
   printf("Check 1\n");
   fflush(stdout);
-      edepplot = new double[nx*nz]{0.0};
+      //edepplot = new double[nx*nz]{0.0};
 
-  for(int i = 0; i < nx;i++)
+  /*for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz;j++)
     {
@@ -285,11 +263,11 @@ void updateH5()
       acc = vec3D(edep_flat, 1,i,j,nx+2, nz+2) + vec3D(edep_flat, 0,i,j,nx+2, nz+2);
       vec2DW(edepplot,i,j,nz, acc);
     }
-  }
+  }*/
   //Core output arrays
   if(calcCBET)
   {
-  writeArr(ib_orig, 0, store, "/Original_Field", 2, new int[2]{nx,nz});//original electric field
+  /*writeArr(ib_orig, 0, store, "/Original_Field", 2, new int[2]{nx,nz});//original electric field
   writeArr(i_b_newplot, 0, store, "/New_Field", 2, new int[2]{nx,nz});//Post-CBET electric field
   writeArr(perturbation, 0, store, "/density_perturbation", 2, new int[2]{nx,nz});//electron density pertubation (or indicative of it)
   writeArr(W_new, 0, store, "/new_energy1", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 1
@@ -300,10 +278,9 @@ void updateH5()
    
   writeArr(anyInt, 1, store, "/nonZero", 2, new int[2]{nx,nz});//stores any location where a ray has been as one
   
-  writeArr(multArr, 0, store, "/gain1", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(gain2arr, 0, store, "/gain2", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
-  writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
+  writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET*/
   }
   double* WPlot1 = new double[GRID]{0.0};
   double* WPlot2 = new double[GRID]{0.0};
@@ -324,8 +301,7 @@ void updateH5()
       boxz--;
       double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
       
-        WPlot1[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
-        WPlotTotal[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+        WPlot1[boxx*nz+boxz] = vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
       
       
     }
@@ -345,27 +321,36 @@ void updateH5()
       boxz--;
       double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
       
-        WPlot2[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
-        WPlotTotal[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+        WPlot2[boxx*nz+boxz] = vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
       
     }
   }
-  /*for(int i = 0; i < nx;i++)
+  for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz;j++)
     {
-      WPlot[i*nz+j] = (vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+      WPlotTotal[i*nz+j] =  8.53e-10*sqrt(max(1.0e-10,WPlot1[i*nz+j])+max(1.0e-10,WPlot2[i*nz+j]))*(1.053/3.0);//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+     
     }
-  }*/
-  writeArr(WPlotTotal, 0, store, "/energy", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
+  }
+  
+    edenplot = new double[nx*nz]{0.0};
+    for(int i = 0; i < nx;i++)
+    {
+      for(int j = 0; j < nz;j++)
+      {
+        vec2DW(edenplot,i,j,nz, vec2D(eden,i,j,nz)/ncrit);
+      }
+    }
+  writeArr(WPlotTotal, 0, store, "/new_field", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
   writeArr(WPlot1, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
   writeArr(WPlot2, 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
   writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
-  //writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
-  //writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
-  //writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
+  writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
+  writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
+  writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
   //writeArr(edepplot, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//total intensity deposited
 
   //Arrays useful for debugging

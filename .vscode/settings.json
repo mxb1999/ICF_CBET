@@ -62,6 +62,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "__nullptr": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     }
 }

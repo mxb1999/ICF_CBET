@@ -8,6 +8,8 @@ from tkinter import *
 
 
 implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read mode
+matComp = h5py.File('../russMatlab.hdf', 'r')#Opens the output hdf file in read mode
+
 #
 ###Initial output arrays, the 'highlights' if you will: electric field, electron density gradient, machnum gradient, density perturbation
 #xarr = np.array(implSim['/x'][:]);
@@ -69,14 +71,14 @@ w = OptionMenu(window, var1, *datalist)
 v = OptionMenu(window, var2, *datalist)
 y = OptionMenu(window, var3, *datalist)
 
-#lblCmpr = tk.Label(
-#    master=window,
-#    text = "Compare Simulation Results",
-#    foreground="white",
-#    background="teal",
-#    width=30,
-#    height=2
-#)
+lblCmpr = tk.Label(
+    master=window,
+    text = "Compare Simulation Results",
+    foreground="white",
+    background="teal",
+    width=30,
+    height=2
+)
 lblPlt = tk.Label(
     master=window,
     text = "Plot from C++ Simulation",
@@ -135,14 +137,14 @@ dim2Button = tk.Button(
     bg="gray",
     fg="white"
 )
-#compButton1 = tk.Button(
-#    master=window,
-#    text="Compare C++ to Matlab",
-#    width=20,
-#    height=1,
-#    bg="gray",
-#    fg="white"
-#)
+compButton1 = tk.Button(
+    master=window,
+    text="Compare C++ to Matlab",
+    width=20,
+    height=1,
+    bg="gray",
+    fg="white"
+)
 #compButton2 = tk.Button(
 #    master=window,
 #    text="Compare C++ to Yorick",
@@ -167,14 +169,14 @@ dim2Button = tk.Button(
 #    bg="gray",
 #    fg="white"
 #)
-#matBtn = tk.Button(
-#    master=window,
-#    text="Plot Matlab Field",
-#    width=20,
-#    height=1,
-#    bg="gray",
-#    fg="white"
-#)
+matBtn = tk.Button(
+    master=window,
+    text="Plot Matlab Field",
+    width=20,
+    height=1,
+    bg="gray",
+    fg="white"
+)
 button = tk.Button(
     master=window,
     text="3DPlot",
@@ -188,21 +190,24 @@ def handle_keypressComp1(event):
     plt.figure();
     path1 = '/z'#+var1.get()
     path2 = '/x'#+var2.get()
-    path3 = '/New_Field'
-    path4 = '/fieldAmp'
+    path3 = '/eden'
+    path4 = '/matlabNeOverNc'
     set1 = np.array(implSim[path1][:])
     set2 = np.array(implSim[path2][:])
     set3 = np.array(implSim[path3][:])
     set4 = np.array(matComp[path4][:])
-    for i in range(set3.shape[0]):
-        for j in range(set3.shape[1]):
-            temp = set4[i][j]
-            set4[i][j]= set4[j][i]
-            set4[j][i]= temp
+    print( set4.shape)
+    set4 = set4.transpose()
+
+    #for i in range(set3.shape[0]):
+    #    for j in range(set3.shape[1]):
+    #        temp = set4[i][j]
+    #        set4[i][j]= set4[j][i]
+    #        set4[j][i]= temp
     nonzero = np.array(set4);
     nonzero = abs(set4)
-    nonzero[nonzero < 1e-6] = 1;
-    set5 = 100*(set4-set3)/nonzero
+    nonzero[nonzero < 1e-10] = 1;
+    set5 = (set3-set4)
     plt.contourf(set1,set2,set5, 100, cmap='nipy_spectral')
     plt.title("Matlab Field - C++ Field (%)")
     plt.xlabel("z (cm)")
@@ -247,6 +252,7 @@ def handle_keypressComp3(event):
     #set1, set2 = np.meshgrid(set1, set2)
     set3 = np.array(yorickComp[path3][:])
     set4 = np.array(matComp[path4][:])
+    set4 = set4.transpose()
     nonzero = abs(set4)
     nonzero[nonzero < 1e-6] = 1;
     set6 = 100*(set4-set3)/nonzero
@@ -258,21 +264,23 @@ def handle_keypressComp3(event):
     plt.show()
     #ax.plot_surface(set1,set2,temp,cmap=cm.coolwarm,linewidth=0, antialiased=False)
     #plt.show()
-    #plot matlab : NOT IN USE
+    #plot matlab
 def pltMatlab(event):
     plt.figure();
     path1 = '/z'#+var1.get()
     path2 = '/x'#+var2.get()
-    path3 = '/fieldAmp'
+    path3 = '/matlabNeOverNc'
     set1 = np.array(implSim[path1][:])
     set2 = np.array(implSim[path2][:])
     set3 = np.array(matComp[path3][:])
-    for i in range(set3.shape[0]):
-        for j in range(set3.shape[1]):
-            temp = set3[i,j]
-            set3[i,j]= set3[j,i]
-            set3[j,i]= temp
-    plt.contourf(set1,set2,set3, 100, cmap='nipy_spectral')
+    #for i in range(0:set3.shape[0]):
+    #    for j in range(0:set3.shape[1]):
+    test = np.array([[0,1],[2,3]])
+    print(test)
+    print(test.transpose())
+
+    np.transpose(set3)
+    plt.contourf(set1,set2, set3.transpose(), 100, cmap='nipy_spectral')
     plt.title("Matlab Electric Field")
     plt.xlabel("z (cm)")
     plt.ylabel("x (cm)")
@@ -309,7 +317,7 @@ def handle_keypress3D(event):
     #set1, set2 = np.meshgrid(set1, set2)
     temp = np.array(implSim[path3][:])
     temp[temp > 1e50] = 0
-    plt.contourf(set1,set2,temp, 1000, cmap='nipy_spectral')
+    plt.contourf(set1,set2,temp, 250, cmap='nipy_spectral')
     plt.title(namer.get())
     plt.xlabel("z (cm)")
     plt.ylabel("x (cm)")
@@ -338,13 +346,16 @@ def handle_keypress2D(event):
 #Binding buttons to functions
 dim2Button.bind("<Button-1>", handle_keypress2D)
 button.bind("<Button-1>", handle_keypress3D)
-#optionMenu.pack()
+compButton1.bind("<Button-1>", handle_keypressComp1)
+matBtn.bind("<Button-1>", pltMatlab)
+compButton1.pack()
+matBtn.pack()
 lblPlt.pack();
 dropLabel1.pack()
 w.pack()
 namer.pack()
 namer.insert(0,"Enter Plot Title")
-#dim2Button.pack()
+dim2Button.pack()
 button.pack()
 
 window.mainloop()

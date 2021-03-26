@@ -3,7 +3,7 @@
 
 //define CBET Gain Function
 __global__ void 
-cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, double mi, double mi_kg, double* maxDelta,int beam = 0)
+cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, double* wMultOld, double mi, double mi_kg, double* maxDelta,int beam = 0)
 {
 
     int nbeams_cu = constants->nbeams_cu;
@@ -84,7 +84,7 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
     for(int m = 1; m < ncrossings_cu;m++)
       {
         int ix = vec4D_cu(boxes_cu, beam,raynum,m, 0, nrays_cu, ncrossings_cu, 2);
-        int iz = vec4D_cu(boxes_cu, beam,raynum,m, 0, nrays_cu, ncrossings_cu, 2);
+        int iz = vec4D_cu(boxes_cu, beam,raynum,m, 1, nrays_cu, ncrossings_cu, 2);
         if(!ix || !iz)
         {
           break;
@@ -110,7 +110,7 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
         }
         double vei = 4*sqrt(2*pi_cu)*pow(estat_cu,4)*pow(Z_cu,2)*coullog/(3*sqrt(me_cu)*pow(Te_cu, 3/2));
         double L_aij = c_cu*sqrt(epsilon)*ncrit_cu/(vei*ne);
-        double prevVal = vec3D_cu(wMult,beam,raynum,m, nrays_cu, ncrossings_cu);
+        double prevVal = vec3D_cu(wMultOld,beam,raynum,m, nrays_cu, ncrossings_cu);
         double prev = exp(-1*mag1/L_aij);
         vec3DW_cu(wMult,beam,raynum,m, nrays_cu, ncrossings_cu, exp(-1*mag1/L_aij));
         double limmult = prev;
@@ -167,33 +167,77 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
             
             double omega2 = omega_cu;
             double eta = ((omega2-omega1)-(kx2-kx1)*vec2D_cu(uflow_cu,ix,iz,nz_cu))/(ws+1.0e-10);
+            /*if(beam == 1)
+            {
+              printf("eta %e\n", eta);
+            }*/
             double efield2 = sqrt(8.*pi_cu*1.0e7*vec3D_cu(i_b_cu, q, r, rayCross, nrays_cu, ncrossings_cu)/c_cu);   
             double P = (pow(iaw_cu,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw_cu),2)*pow(eta,2));  
             double gain1 = constant1*pow(efield2,2)*(ne/ncrit_cu)*(1/iaw_cu)*P/icnt;               //L^-1 from Russ's paper
-            int sign = (beam < q) ? -1 : 1;
-            double oldEnergy2 = vec3D_cu(wMult, q,r,rayCross,nrays_cu, ncrossings_cu);
+            double oldEnergy2 = vec3D_cu(wMultOld, q,r,rayCross,nrays_cu, ncrossings_cu);
             double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
             newEnergy1Mult = (newEnergy1Mult < 1.1) ? newEnergy1Mult : 1.1;
             limmult*=newEnergy1Mult;
-            //if(limmult > 1.2)
-           // {
-          //    break;
-          //  }
-            
-            vec3DM_cu(wMult, beam, raynum, m, nrays_cu, ncrossings_cu,newEnergy1Mult);
             }
-            double curr = vec3D_cu(wMult, beam, raynum, m, nrays_cu, ncrossings_cu);
-            double currDev = abs(prevVal-curr);
-            
-            maxDelta[index] = (currDev > maxDelta[index]) ? currDev : maxDelta[index];
-            double limMult = (curr > 1.2) ? 1.2 : curr;
-            
-            vec3DW_cu(i_b_cu, beam,raynum,m, nrays_cu, ncrossings_cu, i0*curr);
-            i0 = vec3D_cu(i_b_cu, beam,raynum,m, nrays_cu, ncrossings_cu);
+            double curr = limmult;
+            vec3DW_cu(wMult, beam,raynum,m, nrays_cu, ncrossings_cu, limmult);
+
+            double currDev = abs(prevVal-curr)/prevVal;
+            maxDelta[index] = (currDev > maxDelta[index]) ? currDev : maxDelta[index];       
+            vec3DW_cu(i_b_new_cu, beam,raynum,m, nrays_cu, ncrossings_cu, i0*curr);
+            i0 *= curr;
           }
         }
 }
+__global__ void
+updateIterVals(double* wMultOld, double* wMult, double* i_b, double* i_b_new, int nbeams, int nrays, int ncrossings)
+{
+  int index = blockDim.x*blockIdx.x + threadIdx.x;
+  if(index >= nbeams*nrays)
+  {
+      return;
+  }
+  int beam = index / nrays;
+  /*if(index >= (nrays_cu))
+  {
+      return;
+  }*/
+  int raynum = index % nrays;
+  for(int i = 0; i < ncrossings;i++)
+  {
+    double newMult = vec3D_cu(wMult, beam, raynum, i, nrays, ncrossings);
+    double newIntensity = vec3D_cu(i_b_new, beam, raynum, i, nrays, ncrossings);
+    double oldIntensity = vec3D_cu(i_b_new, beam, raynum, i, nrays, ncrossings);
+    vec3DW_cu(wMultOld, beam, raynum, i, nrays,ncrossings, newMult);
+    vec3DW_cu(i_b, beam, raynum, i, nrays,ncrossings, newIntensity);
 
+  }
+
+}
+void updateIterValsSerial(double* wMultOld)
+{
+  /*if(index >= (nrays_cu))
+  {
+      return;
+  }*/
+  for(int beam = 0; beam < nbeams; beam++)
+  {
+    for(int raynum = 0; raynum < nrays; raynum++)
+    {
+      for(int i = 0; i < ncrossings;i++)
+      {
+        double newMult = vec3D(wMult, beam, raynum, i, nrays, ncrossings);
+        double newIntensity = vec3D(i_b_new, beam, raynum, i, nrays, ncrossings);
+        double oldIntensity = vec3D(i_b, beam, raynum, i, nrays, ncrossings);
+        double oldMultVal = vec3D(wMultOld, beam, raynum, i, nrays, ncrossings);
+        vec3DW(wMultOld, beam, raynum, i, nrays,ncrossings, newMult);
+        vec3DW(i_b, beam, raynum, i, nrays,ncrossings, newIntensity);
+    
+      }  
+    }
+  }
+
+}
 __global__ void 
 cbetUpdate(int nbeams, int nrays, int ncrossings, double* wMult, double* intensity, int* boxes)
 {
@@ -232,17 +276,48 @@ cbetUpdate(int nbeams, int nrays, int ncrossings, double* wMult, double* intensi
       i0 = vec3D_cu(intensity, beam,raynum,m, nrays, ncrossings);
     }
 }
-
+void freeIntermediateTraceArrs()
+{
+  
+  cudaError_t err = cudaFree(dedendx);
+  if(err)
+  {
+    printf("%s\n", cudaGetErrorString(err));
+  }
+  err = cudaFree(dedendz);
+  if(err)
+  {
+    printf("%s\n", cudaGetErrorString(err));
+  }
+  
+  err = cudaFree(crossesx);
+  if(err)
+  {
+    printf("%s\n", cudaGetErrorString(err));
+  }
+  err = cudaFree(crossesz);
+  if(err)
+  {
+    printf("%s\n", cudaGetErrorString(err));
+  }
+}
 void launchCBETKernel()
 {
+  
     printf("CBET %d\n", maxIter);
     initArrays();
+    freeIntermediateTraceArrs();
     CBETVars* vars = new_cbetVars();
     CBETArrs* arrays = new_cbetArrs();
-    double* cbetKill;
+    double* cbetKill; 
+    double* wMultOld;   
     cudaMallocManaged(&wMult, sizeof(double)*CROSS);//store the cumulative product of the normalized ray energies
+
+    cudaMallocManaged(&wMultOld, sizeof(double)*CROSS);//store the cumulative product of the normalized ray energies
     for(int i = 0; i < CROSS; i++)
     {
+        wMultOld[i] = 1.0;
+
         wMult[i] = 1.0;
     }
     int T = 256;
@@ -253,14 +328,15 @@ void launchCBETKernel()
     cudaMallocManaged(&maxDelta, sizeof(double)*RAYS);//store the cumulative product of the normalized ray energies
     for(int i = 0; i < maxIter; i++)
     {
-        cbetGain<<<B, T>>>(vars, arrays, marked,wMult, mi, mi_kg,maxDelta);
+        cbetGain<<<B, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
         cudaDeviceSynchronize();
-
+        updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);
+        //updateIterValsSerial(wMultOld);
         double max = 0.0;
         for(int j = 0; j < RAYS; j++)
         {
           max = fmax(maxDelta[j], max);
-          maxDelta[j] = 0;
+          maxDelta[j] = 0.0;
         }
         printf("Max: %e\n", max);
         if(max <= converge)
@@ -271,5 +347,6 @@ void launchCBETKernel()
     cbetUpdate<<<B, T>>>(nbeams, nrays, ncrossings, wMult, i_b_new,boxes);
     cudaDeviceSynchronize();
     printf("%e\n", cs);
+    
 }
 

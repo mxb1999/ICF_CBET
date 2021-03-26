@@ -1,6 +1,7 @@
 #include "parallelConfig.hpp"
 #include "cuda_help.hpp"
 #include "opencl_help.hpp"
+#include "dataFields.hpp"
 
 //GPU IO handlers
 void GConfig::gpuMalloc(void** p, size_t size)//wrapper function for GPU memory allocation
@@ -31,10 +32,10 @@ void GConfig::gpuMemcpy(void* device, void* host, size_t size, int direction)//w
             break;
     }
 }
-void GConfig::addData(void* h, void* d,void* r, const std::string name, size_t size, bool isP)
+void GConfig::addData(void* a, const std::string name, size_t size)
 {
     std::map<entryPair>* map = this->addressHash;
-    (*map)[name] = new DeviceDataEntry(h,d,r,name,size, isP);//this->addressHash->insert_or_assign(name, new DeviceDataEntry(h,d,name, size));
+    (*map)[name] = new DeviceDataEntry(a,name,size);//this->addressHash->insert_or_assign(name, new DeviceDataEntry(h,d,name, size));
 };
 DeviceDataEntry* GConfig::getDataEntry(const std::string name)
 {
