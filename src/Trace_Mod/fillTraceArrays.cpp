@@ -2,25 +2,42 @@
 #include "traceVars.hpp"
 void fillTraceArrays()
 {
-    //marked = new int[GRID*nbeams*numstored]{0}; //nx nz nrays nbeams
-    cudaMallocManaged(&dedendx, sizeof(double)*GRID);
-    //dedendx = new double[GRID]; //nx nz
-    cudaMallocManaged(&dedendz, sizeof(double)*GRID);
-    //dedendz = new double[GRID]; //nx nz
-    cudaMallocManaged(&x, sizeof(double)*nx);
-    //x = new double[nx]{0.0}; //nx nz
-    cudaMallocManaged(&z, sizeof(double)*nz);
-    //z = new double[nz]{0.0}; //nx nz
-    cudaMallocManaged(&eden, sizeof(double)*GRID);
-    //eden = new double[GRID]; //nx nz
-    cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
-    cudaMallocManaged(&present, sizeof(int)*GRID*nbeams);
-    cudaMallocManaged(&boxes, sizeof(int)*RAYS*ncrossings*2);
-    //cudaMallocManaged(&edep, sizeof(double)*RAYS* (nx+2) * (nz+2));
-    //cudaMallocManaged(&ints, sizeof(int)*CROSS*numstored);
-    cudaMallocManaged(&wpe, sizeof(double)*GRID);
-    cudaMallocManaged(&crossesx, sizeof(double)*RAYS*ncrossings);
-    cudaMallocManaged(&crossesz, sizeof(double)*RAYS*ncrossings);
+
+    if(cudaCalc)
+    {
+        //marked = new int[GRID*nbeams*numstored]{0}; //nx nz nrays nbeams
+        cudaMallocManaged(&dedendx, sizeof(double)*GRID);
+        //dedendx = new double[GRID]; //nx nz
+        cudaMallocManaged(&dedendz, sizeof(double)*GRID);
+        //dedendz = new double[GRID]; //nx nz
+        cudaMallocManaged(&x, sizeof(double)*nx);
+        //x = new double[nx]{0.0}; //nx nz
+        cudaMallocManaged(&z, sizeof(double)*nz);
+        //z = new double[nz]{0.0}; //nx nz
+        cudaMallocManaged(&eden, sizeof(double)*GRID);
+        //eden = new double[GRID]; //nx nz
+        cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
+        cudaMallocManaged(&present, sizeof(int)*GRID*nbeams);
+        cudaMallocManaged(&boxes, sizeof(int)*RAYS*ncrossings*2);
+        //cudaMallocManaged(&edep, sizeof(double)*RAYS* (nx+2) * (nz+2));
+        //cudaMallocManaged(&ints, sizeof(int)*CROSS*numstored);
+        cudaMallocManaged(&wpe, sizeof(double)*GRID);
+        cudaMallocManaged(&crossesx, sizeof(double)*RAYS*ncrossings);
+        cudaMallocManaged(&crossesz, sizeof(double)*RAYS*ncrossings);
+    }else
+    {
+        dedendx = new double[GRID];
+        dedendz = new double[GRID];
+        x = new double[nx];
+        z = new double[nz];
+        eden = new double[GRID];
+        marked = new int[GRID*numstored*nbeams];
+        present = new int[GRID*nbeams];
+        boxes = new int[CROSS*2];
+        wpe = new double[GRID];
+        crossesx = new double[CROSS];
+        crossesz = new double[CROSS];
+    }
     double* edenTemp = new double[nx];
     span(edenTemp, 0.1,0.4, nx);
     span(x, xmin, xmax, nx);

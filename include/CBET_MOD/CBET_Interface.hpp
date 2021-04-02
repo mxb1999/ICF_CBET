@@ -53,6 +53,10 @@
     int* present_cu;
 
   };
+  inline double beamProfile(double w, double n, double r)
+  {
+    return exp(-2*pow(abs(r/w),n));
+  }
   //
   extern CBETArrs* new_cbetArrs();
   extern CBETVars* new_cbetVars();

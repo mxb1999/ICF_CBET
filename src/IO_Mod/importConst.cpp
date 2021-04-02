@@ -23,7 +23,7 @@ int* getVarI(std::string target)
   stringmap["nbeams"] = &nbeams;
   stringmap["rays_per_zone"] = &rays_per_zone;
   stringmap["switchvar"] = &switchvar;
-
+  stringmap["cudaCalc"] = &cudaCalc;
   int s = stringmap.size();
   int* result = stringmap[target];
   if(s != stringmap.size())

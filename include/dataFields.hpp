@@ -226,6 +226,7 @@
     extern int pyPlot;
     extern int iterate;
     extern int calcCBET;
+    extern int cudaCalc;
 
     extern int switchvar;
     extern double lambda;

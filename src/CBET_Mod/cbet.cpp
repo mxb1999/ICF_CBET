@@ -23,8 +23,10 @@ void cbetGain(double* wMultOld, double* conv)
   }
   for(int i = 0; i < nbeams;i++)
   {
+    #pragma omp parallel for num_threads(threads)
     for(int j = 0; j < nrays;j++)
     {
+      int thisThread = omp_get_thread_num();
       double i0 = vec3D(i_b, i,j,0,nrays,ncrossings);
       for(int m = 0; m < ncrossings;m++)
       {
@@ -95,8 +97,6 @@ void cbetGain(double* wMultOld, double* conv)
             {
               continue;
             }
-
-            
             double kmag = (omega/c)*sqrt(epsilon);
             double kx1 = kmag * vec3D(dkx, i, j, m, nrays, ncrossings) / mag1;
             double kx2 = kmag * vec3D(dkx, q, r, rayCross, nrays, ncrossings) / mag2;
@@ -120,7 +120,7 @@ void cbetGain(double* wMultOld, double* conv)
             double curr = vec3D(wMult, i, j, m, nrays, ncrossings);
             //printf("curr %e\n",curr);
             double prevVal = vec3D(wMultOld, i, j, m, nrays, ncrossings);
-            *conv = fmax(*conv, abs(curr-prevVal)/prevVal);
+            conv[thisThread] = fmax(conv[thisThread], abs(curr-prevVal)/prevVal);
             i0 *= curr;
             vec3DW(i_b_new, i, j, m, nrays, ncrossings, i0);
         }
@@ -130,6 +130,7 @@ void cbetGain(double* wMultOld, double* conv)
 }
 void cbetUpdate(double* wMultOld)
 {
+  #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nbeams*nrays*ncrossings;i++)
   {
     i_b[i] = i_b_new[i];
@@ -140,6 +141,7 @@ void cbetUpdateFinal()
 {
   for(int i = 0; i < nbeams;i++)
   {
+    #pragma omp parallel for num_threads(threads)
     for(int j = 0; j < nrays; j++)
     {
       double i0 = vec3D(i_b_new, i,j,0, nrays, ncrossings);
@@ -156,27 +158,34 @@ void cbet()
 {
   initArrays();
   printf("CBET\n");
-  int s = 1;
-  if(s)
+  if(cudaCalc)
   {
     launchCBETKernel();
     return;
   }
   wMult = new double[CROSS];//store the cumulative product of the normalized ray energies
   double* wMultOld = new double[CROSS];
-  double* conv = new double;
+  double* conv = new double[threads];
   for(int i = 0; i < CROSS; i++)
   {
     wMultOld[i] = 1.0;
     wMult[i] = 1.0;
   }
-  for(int i = 0; i < 100; i++)
+  for(int i = 0; i < maxIter; i++)
   {
-    *conv = 0;
+    for(int i = 0; i < threads; i++)
+    {
+      conv[i] = 0;
+    }
     cbetGain(wMultOld, conv);
     cbetUpdate(wMultOld);
-    printf("%d %e\n",i, *conv);
-    if(*conv <= converge)
+    double convMax = 0.0;
+    for(int i = 0; i < threads; i++)
+    {
+      convMax = fmax(convMax, conv[i]);
+    }
+    printf("%d %e\n",i, convMax);
+    if(convMax <= converge)
     {
       break;
     }

@@ -63,14 +63,25 @@ void initArrays()
 {
 
   //Allocate global memory for relevant arrays
-  cudaMallocManaged(&i_b_prev, sizeof(double)*CROSS*RAYS);
-  cudaMallocManaged(&i_b_new, sizeof(double)*CROSS);
-  cudaMallocManaged(&i_b, sizeof(double)*CROSS);
-  cudaMallocManaged(&machnum, sizeof(double)*GRID);
-  cudaMallocManaged(&u_flow, sizeof(double)*GRID);
-  cudaMallocManaged(&dkx, sizeof(double)*RAYS*ncrossings);
-  cudaMallocManaged(&dkz, sizeof(double)*RAYS*ncrossings);
-  cudaMallocManaged(&dkmag, sizeof(double)*RAYS*ncrossings);
+  if(calcCBET)
+  {
+    cudaMallocManaged(&i_b_new, sizeof(double)*CROSS);
+    cudaMallocManaged(&i_b, sizeof(double)*CROSS);
+    cudaMallocManaged(&machnum, sizeof(double)*GRID);
+    cudaMallocManaged(&u_flow, sizeof(double)*GRID);
+    cudaMallocManaged(&dkx, sizeof(double)*CROSS);
+    cudaMallocManaged(&dkz, sizeof(double)*CROSS);
+    cudaMallocManaged(&dkmag, sizeof(double)*CROSS);
+  }else
+  {
+    i_b_new = new double[CROSS];
+    i_b = new double[CROSS];
+    machnum = new double[GRID];
+    u_flow = new double[GRID];
+    dkx = new double[CROSS];
+    dkz = new double[CROSS];
+    dkmag = new double[CROSS];
+  }
   double phase_x[nrays];//phase of ray
   double pow_x[nrays];//power delivery of ray
   double initIntensities[nrays];

@@ -190,24 +190,20 @@ def handle_keypressComp1(event):
     plt.figure();
     path1 = '/z'#+var1.get()
     path2 = '/x'#+var2.get()
-    path3 = '/eden'
-    path4 = '/matlabNeOverNc'
+    path3 = '/new_field'
+    path4 = '/matlabField'
     set1 = np.array(implSim[path1][:])
     set2 = np.array(implSim[path2][:])
     set3 = np.array(implSim[path3][:])
     set4 = np.array(matComp[path4][:])
     print( set4.shape)
     set4 = set4.transpose()
-
-    #for i in range(set3.shape[0]):
-    #    for j in range(set3.shape[1]):
-    #        temp = set4[i][j]
-    #        set4[i][j]= set4[j][i]
-    #        set4[j][i]= temp
     nonzero = np.array(set4);
     nonzero = abs(set4)
-    nonzero[nonzero < 1e-10] = 1;
+    nonzero[nonzero < 1e-3] = 1;
     set5 = (set3-set4)
+    set5[set5 > 1e-6] = 1
+    set5[set5 < -1e-6] = -1
     plt.contourf(set1,set2,set5, 100, cmap='nipy_spectral')
     plt.title("Matlab Field - C++ Field (%)")
     plt.xlabel("z (cm)")
@@ -269,7 +265,7 @@ def pltMatlab(event):
     plt.figure();
     path1 = '/z'#+var1.get()
     path2 = '/x'#+var2.get()
-    path3 = '/matlabNeOverNc'
+    path3 = '/matlabField'
     set1 = np.array(implSim[path1][:])
     set2 = np.array(implSim[path2][:])
     set3 = np.array(matComp[path3][:])

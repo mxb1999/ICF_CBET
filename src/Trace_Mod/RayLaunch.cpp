@@ -1,6 +1,57 @@
 #include "Trace_interface.hpp"
 #include "parallelConfig.hpp"
 using namespace std;
+
+void fillTempMarked(int* markedTemp)//marked temp indexed by rays
+{
+  for(int beam = 0; beam < nbeams; beam++)
+  {
+    #pragma omp parallel for num_threads(threads)
+    for(int raynum = 0; raynum < nrays; raynum++)
+    {
+      for(int i = 0; i < ncrossings;i++)
+      {
+        int cx = vec4D(boxes, beam,raynum,i,0, nrays, ncrossings, 2);
+        int cz = vec4D(boxes, beam,raynum,i,1, nrays, ncrossings, 2);
+        if(!cx || !cz)
+        {
+          break;
+        }
+        cx--;
+        cz--;
+        vec4DW(markedTemp, beam, cx,cz,raynum, nx, nz, nrays,1);
+      }
+    }
+  }
+  
+}
+void fillMarked(int* markedTemp)//marked temp indexed by rays
+{
+  #pragma omp parallel for num_threads(threads)
+  for(int ix = 0; ix < nx; ix++)
+  {
+    for(int iz = 0; iz < nz; iz++)
+    {
+      for(int i = 0; i < nbeams;i++)
+      {
+        vec3DW(present, i, ix,iz, nx,nz,0);
+        int cnt = 0;
+        for(int j = 0; j < nrays;j++)
+        {
+          if(vec4D(markedTemp, i,ix,iz, j, nx, nz, nrays))
+          {
+            vec4DW(marked, i,ix,iz, cnt, nx,nz, numstored, j+1);
+            vec3DI(present, i, ix,iz, nx,nz,1);
+            cnt++;
+          }
+        }
+    
+      }
+    }
+  }
+  //printf("(%d, %d): %p %p\n", ix, iz,present, present+nx*nz*nbeams);
+  
+}
 //uses x0 and z0 arrays to initialize the ray positions, then launches via Launch_Ray_XZ()
 void trackRays()
 {
@@ -76,23 +127,17 @@ void trackRays()
   //Reset the intial conditions for beam 2
   printf("Check 1\n");
   fflush(stdout);
-  LaunchCUDARays(raycoor);
-  /*
-  switch(deviceConfiguration->getType())
+  if(cudaCalc)
   {
-    case CUDA:
-      cout << "Launching Beam 1 via CUDA" << endl;
-      LaunchCUDARays(raycoor);
-      return;
-      break;
-    case OPENCL:
-      break;
+    LaunchCUDARays(raycoor);
+    return;
   }
-  */
- /*
+
+  #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays*nbeams;i++)
   {
     int rnum = i%nrays;
+    rayinit* curr = raycoor + i;
     double xinit = curr->xinit;
     double zinit = curr->zinit;
     double kxinit = curr->kxinit;
@@ -111,75 +156,22 @@ void trackRays()
 
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
-*/
+
   if(printUpdates)
   {
     cout << "Finished Launching Rays" << endl;
   }
+  int* markedTemp = new int[GRID*RAYS];
+  fillTempMarked(markedTemp);
+  fillMarked(markedTemp);
+  delete [] markedTemp;
 }
 
 
 
-//updating the intersections array to account for array intersections found via marked
-void updateIntersections()
-{
-  //intersections = new int
-  if(printUpdates)
-  {
-    cout << "Updating Rays Intersections" << endl;
-  }
-  for(int i = 0; i < nx;i++)
-  {
-    for(int j = 0; j < nz; j++)
-    {
-      int s1 = 0;
-      int s2 = 0;
-      for(int q = 0; q < ncrossings;q++)
-      {
-          s1 += (vec4D(marked, 0, i, j, q, nx, nz, ncrossings) != 0);
-          s2 += (vec4D(marked, 1, i, j, q, nx, nz, ncrossings) != 0);
-      }
-      vec2DW(intersections,i,j,nz,s1*s2);
-    }
-  }
-}
-void fillMarked()
-{
 
-  for(int i = 0; i < nbeams; i++)
-  {
-    for(int j = 0; j < nrays; j++)
-    {
-      for(int q = 0; q < ncrossings;q++)
-      {
-        int tempx = vec4D(boxes, i,j,q,0, nrays, ncrossings, 2);//[i][j][q][0]
-        int tempz = vec4D(boxes, i,j,q,1, nrays, ncrossings, 2);//[i][j][q][1]
-        if(tempx && tempz)
-        {
-          tempx--;
-          tempz--;
-          //printf("Ree: %d %d %p\n", tempx,tempz, marked);
-          vec4DW(marked, i, tempx,tempz,q, nx, nz, ncrossings, j+1);
-          vec3DI(present, i, tempx, tempz, nx,nz,1);
-          if(i == 1 && j == 0)
-          {
-            vec2DW(raypath, tempx, tempz, nz,1);
-          }
-          
-          //marked[(tempx*nz + tempz)*nbeams + i].push(j+1);
-        }else
-        {
-          break;
-        }
-        //if(tempx ||)
-      }
-    }
-  }
-}
 
 void launchRays()
 {
   trackRays();
-  //fillMarked();
-
 }
