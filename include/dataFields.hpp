@@ -159,6 +159,7 @@
     extern int* intersections;
     extern int ray1num;
     extern double maxInc;
+    extern int optimize;
     //Pointers for necessary arrays
     extern short* rayAdjList;//ith level has (nbeams-1-i)*nrays*nrays ints Try short for now, doubtful that over 32,000 rays will be used atm for each beam
     extern Ray* beamIndex;//nbeams nrays

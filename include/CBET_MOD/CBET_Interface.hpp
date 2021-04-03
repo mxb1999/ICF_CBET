@@ -8,7 +8,8 @@
   #include <cstring>
   extern void initArrays();
   extern void launchCBETKernel();
-
+  extern void freeCBETArrs();
+  extern void cbetOptimize();
 //Structs for passing constants to kernel launches
   struct CBETVars
   {

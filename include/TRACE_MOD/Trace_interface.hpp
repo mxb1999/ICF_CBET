@@ -22,5 +22,7 @@
   extern void LaunchCUDARays(rayinit* rays);
   extern void fillTraceArrays();
   extern void launch_ray_XZ(rayinit initSettings, int raynum);
-
+  extern void freeTraceArrs();
+  extern void optimizePostTraceArrs();
+  extern void optimizePreTraceArrs();
 #endif

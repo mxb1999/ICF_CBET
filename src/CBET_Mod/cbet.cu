@@ -240,6 +240,7 @@ void updateIterValsSerial(double* wMultOld)
   }
 
 }
+
 __global__ void 
 cbetUpdate(int nbeams, int nrays, int ncrossings, double* wMult, double* intensity, int* boxes)
 {
@@ -302,8 +303,11 @@ void freeIntermediateTraceArrs()
 void launchCBETKernel()
 {
   
-    printf("CBET %d\n", maxIter);
     initArrays();
+    if(optimize)
+    {
+      cbetOptimize();
+    }
     freeIntermediateTraceArrs();
     CBETVars* vars = new_cbetVars();
     CBETArrs* arrays = new_cbetArrs();
@@ -324,29 +328,29 @@ void launchCBETKernel()
     int cnt = 0;
 
     double* maxDelta;
+    auto startKernel = std::chrono::high_resolution_clock::now();
     cudaMallocManaged(&maxDelta, sizeof(double)*CROSS);//store the cumulative product of the normalized ray energies
     for(int i = 0; i < maxIter; i++)
     {
       cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
       updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);
-      cudaDeviceSynchronize();
-        //updateIterValsSerial(wMultOld);
-        double max = 0.0;
-        #pragma omp parallel for num_threads(threads)
-        for(int j = 0; j < CROSS; j++)
-        {
-          max = fmax(maxDelta[j], max);
-          maxDelta[j] = 0.0;
-        }
-        printf("Max: %e\n", max);
-        if(max <= converge)
-        {
-          break;
-        }
+      //updateIterValsSerial(wMultOld);
+      double max = 0.0;
+      #pragma omp parallel for num_threads(threads)
+      for(int j = 0; j < CROSS; j++)
+      {
+        max = fmax(maxDelta[j], max);
+        maxDelta[j] = 0.0;
+      }
+      printf("%e\n",max);
+      if(max <= converge)
+      {
+        break;
+      }
     }
     cbetUpdate<<<B, T>>>(nbeams, nrays, ncrossings, wMult, i_b_new,boxes);
     cudaDeviceSynchronize();
-    printf("%e\n", cs);
-    
+    auto stopKernel = std::chrono::high_resolution_clock::now();    
+    std::cout << nrays << " cbet " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
 }
 

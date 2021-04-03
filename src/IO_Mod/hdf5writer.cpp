@@ -234,6 +234,9 @@ void writePlotArrays()
 }
 void updateH5()
 {
+      printf("4\n");
+    fflush(stdout);
+
   std::string name = "output/implSim.hdf";
   if(printUpdates)
   {
@@ -282,6 +285,7 @@ void updateH5()
   writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET*/
   }
+
   double* WPlot1 = new double[GRID]{0.0};
   double* WPlot2 = new double[GRID]{0.0};
   double* WPlotTotal = new double[GRID]{0.0};

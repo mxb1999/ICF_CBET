@@ -8,7 +8,7 @@ from tkinter import *
 
 
 implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read mode
-matComp = h5py.File('../russMatlab.hdf', 'r')#Opens the output hdf file in read mode
+#matComp = h5py.File('../russMatlab.hdf', 'r')#Opens the output hdf file in read mode
 
 #
 ###Initial output arrays, the 'highlights' if you will: electric field, electron density gradient, machnum gradient, density perturbation

@@ -114,9 +114,9 @@ void setInitParams()//import configuration file
   //fill in dependent variables
   mi_kg = 10230.0*me;	   // Mass of ion in kg
   mi = 10230*(1.0e3*me);          // Mass of ion in g
-  uray_mult = intensity*(courant_mult)*pow(double(rays_per_zone),-1.0); //multiplier which determines intensity deposited in a given zone
   dz = (zmax-zmin)/(nz-1);//dimensions of a single cell
   dx = (xmax-xmin)/(nx-1);
+  uray_mult = intensity*(courant_mult)*pow(double(rays_per_zone),-1.0); //multiplier which determines intensity deposited in a given zone
   nrays= int(rays_per_zone*(beam_max_z-beam_min_z)/dz)+0;//number of rays per beam
   dt=courant_mult*fmin(dx,dz)/c;//time stepping
   nt=int(pow(courant_mult,-1.0)*fmax(nx,nz)*2.0)+1;//number of time steps to track for a given ray
@@ -126,7 +126,6 @@ void setInitParams()//import configuration file
   omega = 2*pi*freq;	// frequency of light, in rad/s
   ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));
   cs = 1e2*sqrt(ec*(Z*Te_eV+3.0*Ti_eV)/mi_kg);
-  printf("NC %e\n", ncrit);
 }
 //dynamically allocate and initialize the arrays
 void initialize()

@@ -2,7 +2,7 @@
  GConfig* deviceConfiguration;
 
   //execution option variables
-  int printUpdates,printTimings,printCBETDiagnostics,printRayTrackDiagnostics,printHDF5Diagnostics,printSpecificTimings, pyPlot,iterate,calcCBET, cudaCalc;
+  int printUpdates,printTimings,printCBETDiagnostics,printRayTrackDiagnostics,printHDF5Diagnostics,printSpecificTimings, pyPlot,iterate,calcCBET, cudaCalc, optimize;
   //CBET constant variables
   double lambda,estat,mach,Z,mi,mi_kg,Te,Te_eV,Ti,Ti_eV,iaw,ncrit,freq,omega;
   int switchvar;

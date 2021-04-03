@@ -501,12 +501,15 @@ fillMarked(int* present_cu,int* marked_cu, int* markedTemp_cu, int nrays_cu, int
 
 void LaunchCUDARays(rayinit* rays)
 { 
+  if(optimize)
+  {
+    optimizePreTraceArrs();
+  }
   TrackConst constVals = *deviceTrackConst(0);
   TrackArrs constArrs = *deviceTrackArrs(0);
   
   int t = fmin(256, nrays);
   int blocks = nrays*nbeams/t+1;
-  printf("BLOCKS AND THREADS %d %d %d\n", blocks, threads );
   auto startlaunch = std::chrono::high_resolution_clock::now();
   rayLaunchKernel<<<blocks,t>>>(constVals,constArrs,rays,raypath);
   cudaDeviceSynchronize();
@@ -522,23 +525,25 @@ void LaunchCUDARays(rayinit* rays)
   {
     marked[i] = 0;
   }
-  std::cout << "Track Time: " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() << std::endl;
   int indReq = fmax(nrays*nbeams, (nx+2) * (nz+2));
   int B = indReq/256+1;
-  startlaunch = std::chrono::high_resolution_clock::now();
+  auto startmark = std::chrono::high_resolution_clock::now();
   fillTempMarked<<<B,256>>>(edep, edep_flat,markedTemp, boxes, nrays, nbeams, ncrossings, nx, nz);
   //locateInts<<<B,256>>>(constVals,constArrs,edep_flat, numrays, present);
   cudaDeviceSynchronize();
   B = (nx*nz)/256 + 1;
   B += (B == 0);
-  printf("B %d T %d\n", B, 256);
   fillMarked<<<B, 256>>>(present, marked, markedTemp, nrays, numstored, nbeams, nx, nz, 1,1);
   cudaDeviceSynchronize();
-  endlaunch = std::chrono::high_resolution_clock::now();
-  std::cout << "IntLocation Time: " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() << std::endl;
+  auto endmark = std::chrono::high_resolution_clock::now();
+  std::cout << nrays << " track " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() <<" " << chrono::duration_cast<chrono::milliseconds>(endmark-startmark).count() << std::endl;
   cudaError_t err = cudaFree(markedTemp);
   if(err)
   {
     printf("%s\n", cudaGetErrorString(err));
+  }
+  if(optimize)
+  {
+    optimizePostTraceArrs();
   }
 }

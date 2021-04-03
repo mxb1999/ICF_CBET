@@ -58,9 +58,8 @@ void trackRays()
   fillTraceArrays();
   if(printUpdates)
   {
-    cout << "Tracking Rays" << endl;
+    //cout << "Tracking Rays" << endl;
   }
-  cout<<"Check 2\n";
   int beam;
   //tracking arrays
   double x0[nrays*nbeams];//initial x position of ray
@@ -98,11 +97,6 @@ void trackRays()
     //Beam one lies along the z axis, x axis is constant
   }
   int finalts[nrays][nbeams];
-
-  if(printUpdates)
-  {
-    cout << "Launching Beam 1" << endl;
-  }
   cout <<  scientific;
   beam = 0;
   //Loop to launch the rays for beam 1, parallelized using OpenMP
@@ -125,13 +119,13 @@ void trackRays()
   //rayLaunch<<<1024,512>>>(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays);
 
   //Reset the intial conditions for beam 2
-  printf("Check 1\n");
-  fflush(stdout);
   if(cudaCalc)
   {
     LaunchCUDARays(raycoor);
     return;
   }
+  auto startL = std::chrono::high_resolution_clock::now();
+  
 
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays*nbeams;i++)
@@ -147,23 +141,25 @@ void trackRays()
 
     launch_ray_XZ(raycoor[i],rnum);
   }
-  beam = 1;
+  auto stopL = std::chrono::high_resolution_clock::now();
 
-  if(printUpdates)
-  {
-    cout << "Launching Beam 2" << endl;
-  }
+
+
 
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
 
   if(printUpdates)
   {
-    cout << "Finished Launching Rays" << endl;
+    //cout << "Finished Launching Rays" << endl;
   }
+  auto startI = std::chrono::high_resolution_clock::now();
   int* markedTemp = new int[GRID*RAYS];
   fillTempMarked(markedTemp);
   fillMarked(markedTemp);
+  auto stopI = std::chrono::high_resolution_clock::now();
+
+  std::cout << "Track "<< nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopL-startL).count() << " " << chrono::duration_cast<chrono::milliseconds>(stopI-startI).count() << std::endl;
   delete [] markedTemp;
 }
 

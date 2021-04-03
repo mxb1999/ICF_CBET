@@ -157,7 +157,6 @@ void cbetUpdateFinal()
 void cbet()
 {
   initArrays();
-  printf("CBET\n");
   if(cudaCalc)
   {
     launchCBETKernel();
@@ -171,6 +170,7 @@ void cbet()
     wMultOld[i] = 1.0;
     wMult[i] = 1.0;
   }
+  auto startKernel = std::chrono::high_resolution_clock::now();
   for(int i = 0; i < maxIter; i++)
   {
     for(int i = 0; i < threads; i++)
@@ -184,12 +184,13 @@ void cbet()
     {
       convMax = fmax(convMax, conv[i]);
     }
-    printf("%d %e\n",i, convMax);
     if(convMax <= converge)
     {
       break;
     }
   }
   cbetUpdateFinal();
+  auto stopKernel = std::chrono::high_resolution_clock::now();
+  std::cout << "CBET Serial Execution Time: " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
 
 }

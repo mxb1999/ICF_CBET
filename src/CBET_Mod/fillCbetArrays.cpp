@@ -63,7 +63,7 @@ void initArrays()
 {
 
   //Allocate global memory for relevant arrays
-  if(calcCBET)
+  if(cudaCalc)
   {
     cudaMallocManaged(&i_b_new, sizeof(double)*CROSS);
     cudaMallocManaged(&i_b, sizeof(double)*CROSS);
@@ -136,3 +136,4 @@ void initArrays()
   }
 
 }
+
