@@ -333,6 +333,7 @@ void launchCBETKernel()
     for(int i = 0; i < maxIter; i++)
     {
       cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
+      cudaDeviceSynchronize();
       updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);
       //updateIterValsSerial(wMultOld);
       double max = 0.0;

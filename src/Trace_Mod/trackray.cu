@@ -112,13 +112,13 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
   ////markingzprev = thisz_0;
   //__________Time Stepping__________
     int numcrossing = 0;
-
+    double forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);//global memory access
+    double forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
     //looping through time intervals
     for(int i = 1; i < nt_cu;i++)
     {
       
-      double forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);
-      double forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
+
 
 
       myvx = myvxprev - forcex*dt_cu;
@@ -156,6 +156,51 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
           break;
          }
       }
+      if(thisx != thisx_0 || thisz != thisz_0)//only access global memory when an update has occured
+      {
+        forcex = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendx_cu,thisx_0,thisz_0, nz_cu);//global memory access
+        forcez = pow(c_cu,2.0)/(2.0*ncrit_cu)*vec2D_cu(dedendz_cu,thisx_0,thisz_0, nz_cu);
+        double m;
+        double b;
+        double cross;
+        double curr;
+        if(thisx != thisx_0)
+        {
+          curr = x_cu[thisx];
+          m = (myz - thisInit.zinit)/(myx-thisInit.xinit);
+          double b = myz - myx*m;
+          double cross = m*curr+b;
+          vec3DW_cu(crossesx_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,curr);
+          vec3DW_cu(crossesz_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,cross);
+          //if ray is still within the grid
+          if(myx < (xmax_cu+dx_cu/2 + 1e-10) && myx > (xmin_cu-dx_cu/2 - 1e-10))
+          {
+            //printf("(%f, %f), ([%f,%f], [%f, %f]) \n", myx, myz, dx_cu*thisx+ xmin_cu, dx_cu*thisx+dx_cu + xmin_cu, dz_cu*thisz+ zmin_cu, dz_cu*thisz+dz_cu+ zmin_cu);
+            vec4DW_cu(boxes_cu, beam,raynum,numcrossing,0, nrays_cu, ncrossings_cu, 2, thisx+1);//[beam][raynum][numcrossing][0]
+            vec4DW_cu(boxes_cu, beam,raynum,numcrossing,1, nrays_cu, ncrossings_cu, 2, thisz+1);//[beam][raynum][numcrossing][1]
+            //vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
+          }
+          numcrossing++;
+        }
+        if(thisz != thisz_0)
+        {
+          curr = z_cu[thisz];
+          m = (myx - thisInit.xinit)/(myz-thisInit.zinit);
+          double b = myx - myz*m;
+          double cross = m*curr+b;
+          vec3DW_cu(crossesz_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,curr);
+          vec3DW_cu(crossesx_cu, beam, raynum, numcrossing, nrays_cu, ncrossings_cu,cross);
+          //if ray is still within the grid
+          if(myx < (xmax_cu+dx_cu/2 + 1e-10) && myx > (xmin_cu-dx_cu/2 - 1e-10))
+          {
+            //printf("(%f, %f), ([%f,%f], [%f, %f]) \n", myx, myz, dx_cu*thisx+ xmin_cu, dx_cu*thisx+dx_cu + xmin_cu, dz_cu*thisz+ zmin_cu, dz_cu*thisz+dz_cu+ zmin_cu);
+            vec4DW_cu(boxes_cu, beam,raynum,numcrossing,0, nrays_cu, ncrossings_cu, 2, thisx+1);//[beam][raynum][numcrossing][0]
+            vec4DW_cu(boxes_cu, beam,raynum,numcrossing,1, nrays_cu, ncrossings_cu, 2, thisz+1);//[beam][raynum][numcrossing][1]
+            //vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
+          }
+          numcrossing++;
+        }
+      }
       //double linez[2]={thisInit.zinit, myz};
       //double linex[2]={thisInit.xinit, myx};
       int lastx = 10000;
@@ -164,7 +209,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
       //boxes_cu stores the spatial locations of each crossing of each ray
       //Marked = trajectory of a single ray, boxes_cu = coordinates of each ray intersection
       
-      for(int j = thisx_m; j <= thisx_p;j++)
+     /* for(int j = thisx_m; j <= thisx_p;j++)
       {
         double currx = x_cu[j]-dx_cu/2;//crossing into 
         //if the ray is currently between within the desired caustic zone for a crossing
@@ -192,12 +237,8 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
             break;
           }
         }
-      }
-      if(raynum == 0 && beam == 0)
-      {
-
-        //printf("check 3 %d\n",i);
-      }
+      }*/
+/*
       //iterating through the selected portions of the z spatial tracking arrays
       //Same idea as previous loop, but for the Z coordinate instead of x
         for(int j = thisz_m; j <= thisz_p;j++)//for [thisz_m, thisz_p] previous z locations, iterate through spatial locations centered on thisz
@@ -226,7 +267,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
               break;
             }
           }
-        }
+        }*/
         //Sets the "initial conditions" for the next iteration
         thisx_0 = thisx;
         thisz_0 = thisz;
