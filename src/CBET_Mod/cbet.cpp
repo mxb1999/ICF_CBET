@@ -162,6 +162,11 @@ void cbet()
     launchCBETKernel();
     return;
   }
+  int s = 0; 
+  if(s)
+  {
+    return;
+  }
   wMult = new double[CROSS];//store the cumulative product of the normalized ray energies
   double* wMultOld = new double[CROSS];
   double* conv = new double[threads];
@@ -191,6 +196,6 @@ void cbet()
   }
   cbetUpdateFinal();
   auto stopKernel = std::chrono::high_resolution_clock::now();
-  std::cout << "CBET Serial Execution Time: " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
+  std::cout << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
 
 }

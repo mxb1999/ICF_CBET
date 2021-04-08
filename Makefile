@@ -16,7 +16,7 @@ LDIR=lib
 OPDIR=output
 CU_ODIR=Bin/cuda
 
-LIBS = -lpython3.8   -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart -L/usr/lib/hdf5 -lhdf5 -lhdf5_cpp -lhdf5_serial #Library Dependecies
+LIBS = -lpython3.8   -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart -L/usr/lib/hdf5 -lhdf5 -lhdf5_cpp  #Library Dependecies
 INT_INCLUDE = -Iinclude -Iinclude/DEV_MOD -Iinclude/IO_MOD -Iinclude/CBET_MOD -Iinclude/TRACE_MOD
 EXT_INCLUDE = -I/usr/include/python3.8 -I/usr/include/cuda -I/usr/include/hdf5/ -I/usr/include/hdf5/serial 
 

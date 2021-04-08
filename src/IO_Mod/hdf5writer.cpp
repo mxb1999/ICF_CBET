@@ -234,23 +234,19 @@ void writePlotArrays()
 }
 void updateH5()
 {
-      printf("4\n");
-    fflush(stdout);
-
   std::string name = "output/implSim.hdf";
   if(printUpdates)
   {
-    cout << "Initializing plot arrays..." << endl;
+    //cout << "Initializing plot arrays..." << endl;
   }
   //writePlotArrays();
   static H5File* store = new H5File(name, H5F_ACC_TRUNC);
   if(printUpdates)
   {
-    cout << "File Opened" << endl;
-    cout << "Starting Write..." << endl;
+    //cout << "File Opened" << endl;
+    //cout << "Starting Write..." << endl;
   }
   //Output arrays to be plotted in Python using included script'
-  printf("Check 1\n");
   fflush(stdout);
       //edepplot = new double[nx*nz]{0.0};
 
@@ -333,7 +329,7 @@ void updateH5()
   {
     for(int j = 0; j < nz;j++)
     {
-      WPlotTotal[i*nz+j] =  8.53e-10*sqrt(max(1.0e-10,WPlot1[i*nz+j])+max(1.0e-10,WPlot2[i*nz+j]))*(1.053/3.0);//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+      WPlotTotal[i*nz+j] =  WPlot1[i*nz+j]+WPlot2[i*nz+j];//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
      
     }
   }
@@ -361,14 +357,14 @@ void updateH5()
   //writeArr(orderplot1, 0, store, "/updated", 2, new int[2]{nx,nz});//stores all updated ray locations
   writeArr(raypath, 1, store, "/raypath", 2, new int[2]{nx,nz});//total intensity deposited
   //writeArr(intersections, 1, store, "/intersections", 2, new int[2]{nx,nz});//all ray paths found
-      printf("Check 2\n");
+      //printf("Check 2\n");
   fflush(stdout);
  
   store->close();//close hdf file
   if(printUpdates)
   {
-    cout << "Write Finished" << endl;
-    cout << "File Closed" << endl;
+    //cout << "Write Finished" << endl;
+    //cout << "File Closed" << endl;
   }
 
 }

@@ -8,7 +8,7 @@ from tkinter import *
 
 
 implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read mode
-#matComp = h5py.File('../russMatlab.hdf', 'r')#Opens the output hdf file in read mode
+matComp = h5py.File('../russMatlab.hdf', 'r')#Opens the output hdf file in read mode
 
 #
 ###Initial output arrays, the 'highlights' if you will: electric field, electron density gradient, machnum gradient, density perturbation
@@ -201,9 +201,7 @@ def handle_keypressComp1(event):
     nonzero = np.array(set4);
     nonzero = abs(set4)
     nonzero[nonzero < 1e-3] = 1;
-    set5 = (set3-set4)
-    set5[set5 > 1e-6] = 1
-    set5[set5 < -1e-6] = -1
+    set5 = (set3-set4)/nonzero*100
     plt.contourf(set1,set2,set5, 100, cmap='nipy_spectral')
     plt.title("Matlab Field - C++ Field (%)")
     plt.xlabel("z (cm)")

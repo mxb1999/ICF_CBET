@@ -205,7 +205,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
       int thisx_p = fmin(nx-1, thisx_0+search_index_x);
       int thisz_m = fmax(0, thisz_0-search_index_z);
       int thisz_p = fmin(nz-1, thisz_0+search_index_z);
-      //determining the current x index of the ray
+     /* //determining the current x index of the ray
       for(int j = thisx_m; j <= thisx_p;j++)
       {
         if ( myx - x[j] <= ((0.5+1.0e-10)*dx + 1e-12) && myx - x[j] >= -1*((0.5+1.0e-10)*dx + 1e-12))
@@ -228,7 +228,12 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           thisz = j;
           break;
          }
-      }
+      }*/
+      int discreteX = ((myx-xmin)/dx);
+      int discreteZ = ((myz-zmin)/dz);
+
+      thisx = discreteX + (myx-(discreteX+xmin)*dx > dx/2);
+      thisz = discreteZ + (myz-(discreteZ+zmin)*dz > dz/2);
       //double linez[2]={z_init, myz};
       //double linex[2]={x_init, myx};
       int lastx = 10000;
@@ -236,7 +241,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
       //iterating through the selected portions of the x spatial tracking arrays
       //boxes stores the spatial locations of each crossing of each ray
       //Marked = trajectory of a single ray, boxes = coordinates of each ray intersection
-      
+
       for(int j = thisx_m; j <= thisx_p;j++)
       {
         double currx = x[j]-dx/2;//crossing into 
@@ -266,11 +271,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           }
         }
       }
-      if(raynum == 0 && beam == 0)
-      {
 
-        //printf("check 3 %d\n",i);
-      }
       //iterating through the selected portions of the z spatial tracking arrays
       //Same idea as previous loop, but for the Z coordinate instead of x
         for(int j = thisz_m; j <= thisz_p;j++)//for [thisz_m, thisz_p] previous z locations, iterate through spatial locations centered on thisz
@@ -343,10 +344,8 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
            // the "|" means "or" (symbol above the return key)
 
         break;
+      }
     }
-
-  }
-
   //delete [] mytime;
   //delete [] nuei;
   //delete [] amplitude_norm;

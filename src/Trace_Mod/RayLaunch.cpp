@@ -159,7 +159,7 @@ void trackRays()
   fillMarked(markedTemp);
   auto stopI = std::chrono::high_resolution_clock::now();
 
-  std::cout << "Track "<< nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopL-startL).count() << " " << chrono::duration_cast<chrono::milliseconds>(stopI-startI).count() << std::endl;
+  std::cout << threads << " " << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopL-startL).count() << " " << chrono::duration_cast<chrono::milliseconds>(stopI-startI).count() << std::endl;
   delete [] markedTemp;
 }
 

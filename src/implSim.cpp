@@ -52,7 +52,32 @@ int main(int argc, char const *argv[]) {
   */
  
   threads = 12;
-  if(argc > 2)
+  
+  initialize();
+  auto start1 = chrono::high_resolution_clock::now();
+  if(argc > 4)
+  {
+    pyPlot = argv[1][0] - 48;
+    std::string str(argv[2]);
+    threads = std::stoi(str);
+    cudaCalc = std::stoi(string(argv[3]));
+    rays_per_zone = std::stoi(string(argv[4]));
+    uray_mult = intensity*(courant_mult)*pow(double(rays_per_zone),-1.0); //multiplier which determines intensity deposited in a given zone
+    nrays= int(rays_per_zone*(beam_max_z-beam_min_z)/dz)+0;//number of rays per beam
+    /*
+    nx = std::stoi(string(argv[4]));
+    nz = nx;
+    dz = (zmax-zmin)/(nz-1);//dimensions of a single cell
+    dx = (xmax-xmin)/(nx-1);
+    nrays= int(rays_per_zone*(beam_max_z-beam_min_z)/dz)+0;//number of rays per beam
+    dt=courant_mult*fmin(dx,dz)/c;//time stepping
+    nt=int(pow(courant_mult,-1.0)*fmax(nx,nz)*2.0)+1;//number of time steps to track for a given ray
+    numstored = nx*6;//number of rays stored per grid zone
+    ncrossings = nx * 3;//max number of ray crossings that can be stored per ray
+    freq = c/lambda;		// frequency of light, in Hz
+    */
+  }
+  else if(argc > 2)
   {
      pyPlot = argv[1][0] - 48;
      std::string str(argv[2]);
@@ -64,9 +89,10 @@ int main(int argc, char const *argv[]) {
   {
     pyPlot = 0;
   }
-  printf("Threads: %d\n", threads);
-  auto start1 = chrono::high_resolution_clock::now();
-  initialize();
+  if(!cudaCalc)
+  {
+    //printf("Threads: %d\n", threads);
+  }
   optimize = 0;
   int b = 0;
   if(b)
@@ -87,7 +113,7 @@ int main(int argc, char const *argv[]) {
 
   auto stop3 = chrono::high_resolution_clock::now();
   auto start4 = chrono::high_resolution_clock::now();
-  updateH5();
+  //updateH5();
 
   auto stop4 = chrono::high_resolution_clock::now();
   if(printTimings)

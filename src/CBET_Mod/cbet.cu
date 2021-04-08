@@ -304,6 +304,7 @@ void launchCBETKernel()
 {
   
     initArrays();
+    
     if(optimize)
     {
       cbetOptimize();
@@ -343,7 +344,6 @@ void launchCBETKernel()
         max = fmax(maxDelta[j], max);
         maxDelta[j] = 0.0;
       }
-      printf("%e\n",max);
       if(max <= converge)
       {
         break;
@@ -352,6 +352,6 @@ void launchCBETKernel()
     cbetUpdate<<<B, T>>>(nbeams, nrays, ncrossings, wMult, i_b_new,boxes);
     cudaDeviceSynchronize();
     auto stopKernel = std::chrono::high_resolution_clock::now();    
-    std::cout << nrays << " cbet " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
+    std::cout << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
 }
 

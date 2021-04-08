@@ -101,7 +101,7 @@ void setInitParams()//import configuration file
         *dName = flag * std::stod(val, NULL);
       }else
       {
-        std::cout << "Variable " << varname << " not found\n";
+        //std::cout << "Variable " << varname << " not found\n";
       }
     }
 
