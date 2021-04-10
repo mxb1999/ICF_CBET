@@ -19,21 +19,19 @@ TRIALS=3
 #    done
 #done
 echo "Testing CUDA CBET"
-for i in {5,10,20,30,40,50,60,70,80,90,110,120,130,140,150}
+#for i in {5,10,20,30,40,50,60,70,80,90}
+#do
+#    for ((t=0;t<$TRIALS;t++));
+#    do
+#        ./implSim 0 12 1 $i
+#    done
+#done
+echo "Testing CPU CBET"
+
+for i in {5,10,20,30,40,50,60,70,80,90}
 do
     for ((t=0;t<$TRIALS;t++));
     do
-        ./implSim 0 12 1 $i
-    done
-done
-echo "Testing CPU CBET"
-for j in {1,12}
-do
-    for i in {5,10,20,30,40,50,60,70,80,90,110,120,130,140,150}
-    do
-        for ((t=0;t<$TRIALS;t++));
-        do
-            ./implSim 0 $j 0 $i
-        done
+        ./implSim 0 12 0 $i
     done
 done
