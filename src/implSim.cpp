@@ -113,7 +113,7 @@ int main(int argc, char const *argv[]) {
 
   auto stop3 = chrono::high_resolution_clock::now();
   auto start4 = chrono::high_resolution_clock::now();
-  //updateH5();
+  updateH5();
 
   auto stop4 = chrono::high_resolution_clock::now();
   if(printTimings)

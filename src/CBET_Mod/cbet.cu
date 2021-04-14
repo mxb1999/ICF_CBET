@@ -134,6 +134,7 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
     {
     int rayCross = 0;
     int r = vec4D_cu(marked,q,ix,iz,l, nx_cu,nz_cu,numstored_cu)-1;
+    double multAcc = vec3D_cu(wMultOld, q,r,0, nrays_cu, ncrossings_cu);
     for(int p = 0; p < ncrossings_cu; p++)
     {
       int ox = vec4D_cu(boxes_cu, q,r,p, 0, nrays_cu, ncrossings_cu, 2);
@@ -144,12 +145,15 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
       }
       ox--;
       oz--;
+      multAcc *= vec3D_cu(wMultOld, q,r,p, nrays_cu, ncrossings_cu);
       if(ox == ix && oz == iz)
       {
         rayCross = p;
         break;
       }
-    }            
+      
+    }     
+  
     double mag2 = vec3D_cu(dkmag_cu, q, r, rayCross, nrays_cu, ncrossings_cu);
     if(mag2 < 1e-10)
     {
@@ -177,12 +181,16 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
     double efield2 = sqrt(8.*pi_cu*1.0e7*vec3D_cu(i_b_cu, q, r, rayCross, nrays_cu, ncrossings_cu)/c_cu);   
     double P = (pow(iaw_cu,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw_cu),2)*pow(eta,2));  
     double gain1 = constant1*pow(efield2,2)*(ne/ncrit_cu)*(1/iaw_cu)*P/icnt;               //L^-1 from Russ's paper
-    double oldEnergy2 = vec3D_cu(wMultOld, q,r,rayCross,nrays_cu, ncrossings_cu);
+    double oldEnergy2 = multAcc;
     double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
-    newEnergy1Mult = (newEnergy1Mult < 1.1) ? newEnergy1Mult : 1.1;
     limmult*=newEnergy1Mult;
+    printf("multAcc %e\n", multAcc);
     }
     double curr = limmult;
+    if(beam == 1  && limmult > 1.5)
+    {
+      printf("Limmult %d %d %e\n",raynum, m, limmult);
+    }       
     vec3DW_cu(wMult, beam,raynum,m, nrays_cu, ncrossings_cu, limmult);
 
     double currDev = abs(prevVal-curr)/prevVal;
@@ -273,6 +281,11 @@ cbetUpdate(int nbeams, int nrays, int ncrossings, double* wMult, double* intensi
       double mult = vec3D_cu(wMult, beam,raynum,m, nrays, ncrossings);
       vec3DW_cu(intensity, beam,raynum,m, nrays, ncrossings, i0*mult);
       i0 = vec3D_cu(intensity, beam,raynum,m, nrays, ncrossings);
+      if(beam == 1 && raynum == 250)
+      {
+        //printf("%d %d Mult %p\n", raynum,m, vec3DP_cu(wMult, beam,raynum,m, nrays, ncrossings));
+
+      }
     }
 }
 void freeIntermediateTraceArrs()
@@ -335,7 +348,12 @@ void launchCBETKernel()
     {
       cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
       cudaDeviceSynchronize();
+      fflush(stdout);
+
+      printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
+      fflush(stdout);
       updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);
+      cudaDeviceSynchronize();
       //updateIterValsSerial(wMultOld);
       double max = 0.0;
       #pragma omp parallel for num_threads(threads)
@@ -344,10 +362,14 @@ void launchCBETKernel()
         max = fmax(maxDelta[j], max);
         maxDelta[j] = 0.0;
       }
+      printf("%e\n", max);
       if(max <= converge)
       {
         break;
       }
+      printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
+      fflush(stdout);
+
     }
     cbetUpdate<<<B, T>>>(nbeams, nrays, ncrossings, wMult, i_b_new,boxes);
     cudaDeviceSynchronize();

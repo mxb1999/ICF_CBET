@@ -435,21 +435,7 @@ __global__ void
 fillTempMarked(double* edep_cu, double* edep_flat, int* markedTemp_cu, int* boxes_cu, int nrays_cu, int nbeams_cu, int ncrossings_cu, int nx_cu, int nz_cu)//marked temp indexed by rays
 {
   int index = threadIdx.x + blockDim.x*blockIdx.x;
-  /*int ix = index / (nz_cu+2);
-  int iz = index % (nz_cu+2);
-  if(ix < nx_cu + 2 && iz < nz_cu + 2)
-  {
-    double acc0 = 0.0;
-    double acc1 = 0.0;
-    for(int i = 0; i < nrays_cu;i++)
-    {
-      acc0 += vec4D_cu(edep_cu, 0,i,ix,iz, nrays_cu, nx_cu+2,nz_cu+2);
-      acc1 += vec4D_cu(edep_cu, 1,i,ix,iz, nrays_cu, nx_cu+2,nz_cu+2);
-    }
-    vec3DW_cu(edep_flat, 0,ix,iz,nx_cu+2,nz_cu+2,acc0);
-    vec3DW_cu(edep_flat, 1,ix,iz,nx_cu+2,nz_cu+2,acc1);
-  }
-*/
+
   int beam = index/nrays_cu;
   if(beam >= nbeams_cu)
   {

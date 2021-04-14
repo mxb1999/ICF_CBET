@@ -76,6 +76,7 @@ void cbetGain(double* wMultOld, double* conv)
           {
             int rayCross = 0;
             int r = vec4D(marked,q,ix,iz,l, nx,nz,numstored)-1;
+            double multAcc = vec3D(wMultOld, q,r,0, nrays, ncrossings);
             for(int p = 0; p < ncrossings; p++)
             {
               int ox = vec4D(boxes, q,r,p, 0, nrays, ncrossings, 2);
@@ -86,6 +87,7 @@ void cbetGain(double* wMultOld, double* conv)
               }
               ox--;
               oz--;
+              multAcc*=vec3D(wMultOld, q,r,p, nrays, ncrossings);
               if(ox == ix && oz == iz)
               {
                 rayCross = p;
@@ -112,8 +114,7 @@ void cbetGain(double* wMultOld, double* conv)
             double efield2 = sqrt(8.*pi*1.0e7*vec3D(i_b, q, r, rayCross, nrays, ncrossings)/c);   
             double P = (pow(iaw,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw),2)*pow(eta,2));  
             double gain1 = constant1*pow(efield2,2)*(ne/ncrit)*(1/iaw)*P/icnt;               //L^-1 from Russ's paper
-            int sign = (i < q) ? -1 : 1;
-            double oldEnergy2 = vec3D(wMultOld, q,r,rayCross,nrays, ncrossings);
+            double oldEnergy2 = multAcc;
             double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
             vec3DM(wMult, i, j, m, nrays, ncrossings,newEnergy1Mult);
           }

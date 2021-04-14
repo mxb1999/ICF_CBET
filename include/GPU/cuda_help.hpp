@@ -89,6 +89,7 @@
   {
     return arr[(a)*d2+b];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
   }
+  
   template <typename T>
    __forceinline__ __device__
   T* vec4DP_cu(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
