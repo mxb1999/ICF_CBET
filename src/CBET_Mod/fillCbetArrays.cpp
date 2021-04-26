@@ -94,13 +94,13 @@ void initArrays()
   }
   double dbRay = (beam_max_z-beam_min_z)/nrays; 
   //#pragma omp parallel for num_threads(threads)
+  //Currently using Russ' initial intensity profile, hard coded to match
+  double w = 2;
+  double p = 4.0;
   for(int i = 0; i < nrays;i++)
   {
     double interpval = interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays);
     double r = abs(dbRay*i+beam_min_z)*1e4;
-    double w = 2;
-    double p = 4.0;
-    printf("%e\n",exp(-2*pow(r/w,p))*1000);
     initIntensities[i] = exp(-2*pow(r/w,p))*intensity;
   }
   //Initialize CBET array values
