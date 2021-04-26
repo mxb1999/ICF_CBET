@@ -1,12 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "GPU/cuda_help.hpp"
 #include "Trace_interface.hpp"
 #include "io_interface.hpp"
-#include "cuda_help.hpp"
 #include <stdarg.h>
 #define MAX(i,j) ((i > j) ? i : j)
 #define MIN(i,j) ((i < j) ? i : j)
+
 __device__ double* edepcuComp;
+
+
+
+
 
 //initializing necessary arrays for the calculations
 __global__ void 
@@ -32,20 +37,18 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
   double c_cu = val.c_cu;
   double ncrit_cu = val.ncrit_cu;
   
-  
   double* dedendx_cu = arrs.dedendx_cu;
   double* dedendz_cu = arrs.dedendz_cu;
   double* x_cu = arrs.x_cu;
   double* z_cu = arrs.z_cu;
   double* crossesx_cu = arrs.crossesx_cu;
   double* crossesz_cu = arrs.crossesz_cu;
-  double* edep_cu = arrs.edep_cu;
+  LinkCross** edep_cu = (LinkCross**)(arrs.edep_cu);
   double* wpe_cu = arrs.wpe_cu;
   int* boxes_cu = arrs.boxes_cu;
   int index = threadIdx.x+blockIdx.x*blockDim.x;
   int raynum = index %nrays_cu;
   int beam = index/nrays_cu;
-
   
   
   if(beam >= nbeams_cu || raynum >= nrays_cu)
@@ -102,6 +105,8 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
   }
   int discreteX = ((thisInit.xinit-xmin_cu)/dx_cu);
   int discreteZ = ((thisInit.zinit-zmin_cu)/dz_cu);
+  LinkCross* curr = edep_cu[index];//declare the header value, defined by 
+  double immdep[9]{0.0}; 
 
   thisx_0 = discreteX + (thisInit.xinit-(discreteX+xmin_cu)*dx_cu > dx_cu/2);
   thisz_0 = discreteZ + (thisInit.zinit-(discreteZ+zmin_cu)*dz_cu > dz_cu/2);
@@ -196,7 +201,18 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
               vec4DW_cu(boxes_cu, beam,raynum,numcrossing,1, nrays_cu, ncrossings_cu, 2, thisz+1);//[beam][raynum][numcrossing][1]
               //vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
             }
-            
+            double* vals = curr->vals;
+            curr->location = thisx*nz_cu+thisz;
+            //printf("%p\n", newCross); 
+            //curr->next = newCross;
+            //curr = newCross;
+            for(int i = 0; i < 9;i++)
+            {
+              vals[i] = immdep[i]; 
+              immdep[i] = 0;
+            }
+
+            curr = (LinkCross*)curr->next;
             lastx = currx;
             numcrossing += 1;
             break;
@@ -227,7 +243,18 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
               // vec4DW_cu(marked_cu, beam,raynum,thisx,thisz, nrays_cu, nx_cu, nz_cu, 1);
               }
               lastz = currz;
+              double* vals = curr->vals;
+            curr->location = thisx*nz_cu+thisz;
+            //printf("%p\n", newCross); 
+            //curr->next = newCross;
+            //curr = newCross;
+            for(int i = 0; i < 9;i++)
+            {
+              vals[i] = immdep[i]; 
+              immdep[i] = 0;
+            }
 
+            curr = (LinkCross*)curr->next;
               numcrossing += 1;
               break;
             }
@@ -239,7 +266,7 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
         //markingx = thisx;
         //markingz = thisz;
         //Deposit energy due to the incident ray
-  	    /*double increment = thisInit.urayinit;
+  	    double increment = thisInit.urayinit;
         double xp = (myx - (x_cu[thisx]+dx_cu/2.0))/dx_cu;
         double zp = (myz - (z_cu[thisz]+dz_cu/2.0))/dz_cu;
         int xadd = (xp >= 0) ? 1 : -1;
@@ -255,13 +282,12 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
 
           break;
         }
+        //vec3DW_cu(rayZones, beam, raynum, numcrossing, nx_cu+2,nz_cu+2);
         //printf("edep: %d %d %d %d %d\n",thisx+1, thisz+1, beam, raynum, RAYS);
-        vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a1*increment);	// blue
-        vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+1, nrays_cu, nx_cu+2,nz_cu+2, a2*increment);// green
-        vec4DI_cu(edep_cu, beam, raynum, thisx+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a3*increment);// yellow
-        vec4DI_cu(edep_cu, beam, raynum, thisx+xadd+1, thisz+zadd+1, nrays_cu, nx_cu+2,nz_cu+2, a4*increment);	// red
-
-        */
+        immdep[0] += a1;//thisx, thisz
+        immdep[3*(1+xadd)] += a2; //thisx + 1, thisz
+        immdep[1+zadd] += a3; //thisx, thisz + 1
+        immdep[3*(1+xadd) + (1+zadd)] += a4; //thisx + 1, thisz + 1
         thisInit.xinit = myx;
         thisInit.zinit = myz;
         myvxprev = myvx;
@@ -279,7 +305,6 @@ rayLaunchKernel(TrackConst val, TrackArrs arrs,rayinit* rays_cu, int* raypath)
     }
 
   }
-
   //delete [] mytime;
   //delete [] nuei;
   //delete [] amplitude_norm;
@@ -432,7 +457,7 @@ locateInts(TrackConst val, TrackArrs arr, double* edep_flat, int* numrays_cu, in
 }
 
 __global__ void
-fillTempMarked(double* edep_cu, double* edep_flat, int* markedTemp_cu, int* boxes_cu, int nrays_cu, int nbeams_cu, int ncrossings_cu, int nx_cu, int nz_cu)//marked temp indexed by rays
+fillTempMarked(int* markedTemp_cu, int* boxes_cu, int nrays_cu, int nbeams_cu, int ncrossings_cu, int nx_cu, int nz_cu)//marked temp indexed by rays
 {
   int index = threadIdx.x + blockDim.x*blockIdx.x;
 
@@ -499,10 +524,33 @@ void LaunchCUDARays(rayinit* rays)
   }
   TrackConst constVals = *deviceTrackConst(0);
   TrackArrs constArrs = *deviceTrackArrs(0);
-  
   int t = fmin(256, nrays);
   int blocks = nrays*nbeams/t+1;
   auto startlaunch = std::chrono::high_resolution_clock::now();
+  #pragma omp parallel for num_threads(threads)
+  for(int i = 0; i < RAYS; i++)
+  {
+    
+    LinkCross* curr = new_LinkCrossHost(NULL, 0,0,0);
+    edep[i] = curr;
+    for(int j = 1; j < ncrossings; j++)
+    {
+      curr->next = new_LinkCrossHost(NULL, 0,0,j);
+      curr = (LinkCross*)curr->next;
+    }
+  }
+  for(int i = 0; i < RAYS; i++)
+  {
+    LinkCross* curr = edep[i];
+    for(int j = 1; j < ncrossings; j++)
+    {
+      if(!curr)
+      {
+        printf("REE (%d,%d)\n", i,j);
+      }
+      curr = (LinkCross*)curr->next;
+    }
+  }
   rayLaunchKernel<<<blocks,t>>>(constVals,constArrs,rays,raypath);
   cudaDeviceSynchronize();
   auto endlaunch = std::chrono::high_resolution_clock::now();
@@ -520,7 +568,7 @@ void LaunchCUDARays(rayinit* rays)
   int indReq = fmax(nrays*nbeams, (nx+2) * (nz+2));
   int B = indReq/256+1;
   auto startmark = std::chrono::high_resolution_clock::now();
-  fillTempMarked<<<B,256>>>(edep, edep_flat,markedTemp, boxes, nrays, nbeams, ncrossings, nx, nz);
+  fillTempMarked<<<B,256>>>(markedTemp, boxes, nrays, nbeams, ncrossings, nx, nz);
   //locateInts<<<B,256>>>(constVals,constArrs,edep_flat, numrays, present);
   cudaDeviceSynchronize();
   B = (nx*nz)/256 + 1;

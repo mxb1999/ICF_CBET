@@ -3,6 +3,8 @@
     #include "DEV_MOD/parallelConfig.hpp"
     #include <queue>
     #include <iostream>
+      #include "GPU/cuda_help.hpp"
+
     #include <vector>
     #include <string>
     #include <fstream>
@@ -169,6 +171,7 @@
     extern double* dedendz; //nx nz
     extern double* wMult;
 
+    extern char* rayZones;
     extern int* raypath; //nx nz store single ray path
     extern double* x; //nx
     extern double* z; //nz
@@ -176,7 +179,7 @@
     extern int* numrays;
     //Marked Stores which rays from each beam have passed through each zone
     //Boxes Stores whi
-    extern double* edep; //nx+2 nz+2 nbeams
+    extern LinkCross** edep; //nx+2 nz+2 nbeams
     extern int* present; //nx nz nbeams
     extern double* machnum; //nx nz
     extern int* boxes; //nbeams nrays ncrossings 2
@@ -210,7 +213,7 @@
     extern double* convergeplot;//nx nz
     extern double* i_b2Error;//nx nz
     extern double* i_b_newplot;//nx nz
-    extern double* edenplot; //the array is eden/ncrit,  nx nz
+    extern double* edenplot; //the0 array is eden/ncrit,  nx nz
     extern double* edepplot; //nx nz
     extern int* raytrace;//nx nz
     extern double* ib_orig;//nx nz
@@ -228,7 +231,7 @@
     extern int iterate;
     extern int calcCBET;
     extern int cudaCalc;
-
+    extern double rayStepSizeRatio;
     extern int switchvar;
     extern double lambda;
     extern double estat;

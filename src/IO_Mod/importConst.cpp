@@ -125,6 +125,7 @@ void setInitParams()//import configuration file
   freq = c/lambda;		// frequency of light, in Hz
   omega = 2*pi*freq;	// frequency of light, in rad/s
   ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));
+  printf("%e %e\n", omega, ncrit);
   cs = 1e2*sqrt(ec*(Z*Te_eV+3.0*Ti_eV)/mi_kg);
 }
 //dynamically allocate and initialize the arrays

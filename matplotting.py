@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 import tkinter as tk
-from tkinter import *
+from tk import *
 
 
 implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read mode
@@ -53,6 +53,7 @@ templist = list(implSim.keys())#Fill a list with the titles of the quantities be
 datalist = []
 print("Initialized");
 for i in templist:
+    print(i)
     if i != 'x' and i != 'z':
         datalist.append(i)
 #Was used for a previous layout
@@ -61,15 +62,15 @@ for i in templist:
 #window = tk.Frame(master=window,padx=5,pady=5)
 #window.grid(row=0,column=1)
 
-var1 = StringVar(window)
-var2 = StringVar(window)
-var3 = StringVar(window)
+var1 = tk.StringVar(window)
+var2 = tk.StringVar(window)
+var3 = tk.StringVar(window)
 var1.set("") # default value
 var2.set("") # default value
 var3.set("") # default value
-w = OptionMenu(window, var1, *datalist)
-v = OptionMenu(window, var2, *datalist)
-y = OptionMenu(window, var3, *datalist)
+w = tk.OptionMenu(window, var1, *datalist)
+v = tk.OptionMenu(window, var2, *datalist)
+y = tk.OptionMenu(window, var3, *datalist)
 
 lblCmpr = tk.Label(
     master=window,
@@ -201,7 +202,7 @@ def handle_keypressComp1(event):
     nonzero = np.array(set4);
     nonzero = abs(set4)
     nonzero[nonzero < 1e-3] = 1;
-    set5 = (set3-set4)/nonzero*100
+    set5 = (set3-set4)#/nonzero*100
     plt.contourf(set1,set2,set5, 100, cmap='nipy_spectral')
     plt.title("Matlab Field - C++ Field (%)")
     plt.xlabel("z (cm)")
@@ -213,24 +214,20 @@ def handle_keypressComp1(event):
 #compares C++ to yorick: NOT IN USE
 def handle_keypressComp2(event):
     plt.figure();
-    path1 = '/z'#+var1.get()
-    path2 = '/x'#+var2.get()
-    path3 = '/New_Field'
-    path4 = '/field'
-    set1 = np.array(implSim[path1][:])
+    path1 = '/initAmp'
+    path2 = '/initI'
+    plt.figure();
+    set1 = np.array(matComp[path1][:])
     set2 = np.array(implSim[path2][:])
+
     #set1, set2 = np.meshgrid(set1, set2)
-    set3 = np.array(implSim[path3][:])
-    set4 = np.array(yorickComp[path4][:])
-    nonzero = np.array(set4);
-    nonzero = abs(set4)
-    nonzero[nonzero < 1e-6] = 1;
-    set5 = 100*(set4-set3)/nonzero
-    plt.contourf(set1,set2,set5, 100, cmap='plasma')
-    plt.title("Yorick Field - C++ Field (%)")
-    plt.xlabel("z (cm)")
-    plt.ylabel("x (cm)")
-    plt.colorbar()
+    print ("Hello")
+    plt.plot(range(1,set2.size+1),set1[0,0:559],label='Matlab')
+    plt.plot(range(1,set2.size+1),set2,label='C++')
+    plt.title(namer.get())
+    plt.ylabel(var1.get())
+    plt.xlabel("Index")
+    plt.legend();
     plt.show()
     #ax.plot_surface(set1,set2,temp,cmap=cm.coolwarm,linewidth=0, antialiased=False)
     #plt.show()
@@ -323,16 +320,14 @@ def handle_keypress3D(event):
     #plot a line graph of the desired array
 def handle_keypress2D(event):
     plt.figure();
-    path1 = '/'+var1.get()
-    path2 = '/'+var2.get()
-    set1 = np.array(implSim[path1][:])
+    path2 = '/'+var1.get()
     set2 = np.array(implSim[path2][:])
     #set1, set2 = np.meshgrid(set1, set2)
     print ("Hello")
-    plt.plot(set1,set2)
+    plt.plot(range(1,set2.size+1),set2)
     plt.title(namer.get())
-    plt.xlabel(var1.get())
-    plt.ylabel(var2.get())
+    plt.ylabel(var1.get())
+    plt.xlabel("Index")
     plt.show()
     #ax.plot_surface(set1,set2,temp,cmap=cm.coolwarm,linewidth=0, antialiased=False)
     #plt.show()

@@ -1,5 +1,11 @@
 #include "CBET_Interface.hpp"
 
+
+void limitMultipliers()
+{
+  //
+}
+
 void cbetGain(double* wMultOld, double* conv)
 {
   double constant1 = (pow(estat,2.0))/(4*(1.0e3*me)*c*omega*kb*Te*(1+3*Ti/(Z*Te)));
@@ -28,11 +34,13 @@ void cbetGain(double* wMultOld, double* conv)
     {
       int thisThread = omp_get_thread_num();
       double i0 = vec3D(i_b, i,j,0,nrays,ncrossings);
-      for(int m = 0; m < ncrossings;m++)
+      for(int m = 0; m < ncrossings - 1;m++)
       {
         int ix = vec4D(boxes, i,j,m, 0, nrays, ncrossings, 2);
         int iz = vec4D(boxes, i,j,m, 1, nrays, ncrossings, 2);
-        if(!ix || !iz)
+        int inx = vec4D(boxes, i,j,m+1, 0, nrays, ncrossings, 2);
+        int inz = vec4D(boxes, i,j,m+1, 1, nrays, ncrossings, 2);
+        if((!ix || !iz) || (!inx || !inz))
         {
           break;
         }
@@ -58,7 +66,7 @@ void cbetGain(double* wMultOld, double* conv)
         double vei = 4*sqrt(2*pi)*pow(estat,4)*pow(Z,2)*coullog/(3*sqrt(me)*pow(Te, 3/2));
         double L_aij = c*sqrt(epsilon)*ncrit/(vei*ne);
         double prev = exp(-1*mag1/L_aij);
-        vec3DW(wMult,i,j,m, nrays, ncrossings, exp(-1*mag1/L_aij));
+        double limmult = prev;
         for(int q = 0; q < nbeams;q++)
         {
           if(q == i)
@@ -72,12 +80,17 @@ void cbetGain(double* wMultOld, double* conv)
           int qcnt = vec3D(present, q, ix,iz,nx,nz);
           //int qcross[qcnt]{0};
           int lim = fmin(qcnt, icnt);
-          for(int l = 0; l < lim; l++)
+          for(int l = 0; l < qcnt; l++)
           {
             int rayCross = 0;
-            int r = vec4D(marked,q,ix,iz,l, nx,nz,numstored)-1;
+            int r = vec4D(marked,q,ix,iz,l, nx,nz,numstored);
+            if(!r)
+            {
+              printf("Ree\n");
+            }
+            r--;
             double multAcc = vec3D(wMultOld, q,r,0, nrays, ncrossings);
-            for(int p = 0; p < ncrossings; p++)
+            for(int p = 1; p < ncrossings; p++)
             {
               int ox = vec4D(boxes, q,r,p, 0, nrays, ncrossings, 2);
               int oz = vec4D(boxes, q,r,p, 1, nrays, ncrossings, 2);
@@ -94,11 +107,13 @@ void cbetGain(double* wMultOld, double* conv)
                 break;
               }
             }            
+            
             double mag2 = vec3D(dkmag, q, r, rayCross, nrays, ncrossings);
             if(mag2 < 1e-10)
             {
               continue;
             }
+            
             double kmag = (omega/c)*sqrt(epsilon);
             double kx1 = kmag * vec3D(dkx, i, j, m, nrays, ncrossings) / mag1;
             double kx2 = kmag * vec3D(dkx, q, r, rayCross, nrays, ncrossings) / mag2;
@@ -111,19 +126,22 @@ void cbetGain(double* wMultOld, double* conv)
             
             double omega2 = omega;
             double eta = ((omega2-omega1)-(kx2-kx1)*vec2D(u_flow,ix,iz,nz))/(ws+1.0e-10);
-            double efield2 = sqrt(8.*pi*1.0e7*vec3D(i_b, q, r, rayCross, nrays, ncrossings)/c);   
+            double efield2 = sqrt(8.*pi*1.0e7*vec3D(i_b, q, r, rayCross, nrays, ncrossings)/c); 
+  
             double P = (pow(iaw,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw),2)*pow(eta,2));  
             double gain1 = constant1*pow(efield2,2)*(ne/ncrit)*(1/iaw)*P/icnt;               //L^-1 from Russ's paper
             double oldEnergy2 = multAcc;
             double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
-            vec3DM(wMult, i, j, m, nrays, ncrossings,newEnergy1Mult);
+            
+            limmult *= newEnergy1Mult;
+            //vec3DM(wMult, i, j, m, nrays, ncrossings,newEnergy1Mult);
           }
-            double curr = vec3D(wMult, i, j, m, nrays, ncrossings);
+            //limit the CBET multiplier
+            vec3DW(wMult, i, j, m+1, nrays, ncrossings,limmult);
+            double curr = limmult;
             //printf("curr %e\n",curr);
-            double prevVal = vec3D(wMultOld, i, j, m, nrays, ncrossings);
+            double prevVal = vec3D(wMultOld, i, j, m+1, nrays, ncrossings);
             conv[thisThread] = fmax(conv[thisThread], abs(curr-prevVal)/prevVal);
-            i0 *= curr;
-            vec3DW(i_b_new, i, j, m, nrays, ncrossings, i0);
         }
       }
     }
@@ -131,11 +149,20 @@ void cbetGain(double* wMultOld, double* conv)
 }
 void cbetUpdate(double* wMultOld)
 {
-  #pragma omp parallel for num_threads(threads)
-  for(int i = 0; i < nbeams*nrays*ncrossings;i++)
+  for(int i = 0; i < nbeams;i++)
   {
-    i_b[i] = i_b_new[i];
-    wMultOld[i] = wMult[i];
+    #pragma omp parallel for num_threads(threads)
+    for(int j = 0; j < nrays; j++)
+    {
+      //double i0 = vec3D(wMult, i,j,0, nrays, ncrossings);
+      for(int m = 1; m < ncrossings;m++)
+      {
+        double mult = vec3D(wMult, i,j,m, nrays, ncrossings);
+        //vec3DW(i_b, i,j,m, nrays, ncrossings, mult*i0);
+        vec3DW(wMultOld, i,j,m, nrays, ncrossings, mult);
+        //i0 *= mult;
+      }
+    }
   }
 }
 void cbetUpdateFinal()
@@ -145,18 +172,32 @@ void cbetUpdateFinal()
     #pragma omp parallel for num_threads(threads)
     for(int j = 0; j < nrays; j++)
     {
+      
+      int check = 0;
       double i0 = vec3D(i_b_new, i,j,0, nrays, ncrossings);
       for(int m = 1; m < ncrossings;m++)
       {
+        int ix = vec4D(boxes, i,j,m, 0, nrays, ncrossings, 2);
+        int iz = vec4D(boxes, i,j,m, 1, nrays, ncrossings, 2);
+        if(!ix || !iz)
+        {
+          break;
+        }
         double mult = vec3D(wMult, i,j,m, nrays, ncrossings);
         vec3DW(i_b_new, i,j,m, nrays, ncrossings, i0*mult);
         i0 = vec3D(i_b_new, i,j,m, nrays, ncrossings);
+        if(i == 1 && j == 0)
+        {
+        //  printf("Ray %d crossing %d %e\n", j, m, mult);
+        }
+        
       }
     }
   }
 }
 void cbet()
 {
+  printf("CBET\n");
   initArrays();
   if(cudaCalc)
   {
@@ -190,6 +231,7 @@ void cbet()
     {
       convMax = fmax(convMax, conv[i]);
     }
+    printf("Converge %e\n", convMax);
     if(convMax <= converge)
     {
       break;

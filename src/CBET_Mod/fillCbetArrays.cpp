@@ -3,6 +3,7 @@
 #include "CBETVars.hpp"
 
 
+double rayStepSizeRatio;
 CBETVars* new_cbetVars()
 {
   CBETVars* curr;
@@ -95,8 +96,12 @@ void initArrays()
   //#pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays;i++)
   {
-    //printf("%e\n",interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays));
-    initIntensities[i] = interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays)*intensity;
+    double interpval = interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays);
+    double r = abs(dbRay*i+beam_min_z)*1e4;
+    double w = 2;
+    double p = 4.0;
+    printf("%e\n",exp(-2*pow(r/w,p))*1000);
+    initIntensities[i] = exp(-2*pow(r/w,p))*intensity;
   }
   //Initialize CBET array values
   double area = dx*dz;
@@ -113,6 +118,9 @@ void initArrays()
       vec2DW(u_flow,i,j,nz, val*cs); //
     }
   }
+  rayStepSizeRatio = 1;
+  int count = 0;
+  double sum = 0;
   for(int m = 0; m < nbeams; m++)
   {
 
@@ -131,9 +139,12 @@ void initArrays()
             vec3DW(dkx, m,j,q, nrays, ncrossings, delX);
             vec3DW(dkz, m,j,q, nrays, ncrossings, delZ);
             vec3DW(dkmag, m,j,q, nrays, ncrossings, mag);
+            sum += mag;
+            count++;
         }
     }
   }
+  rayStepSizeRatio = sum/count;
 
 }
 

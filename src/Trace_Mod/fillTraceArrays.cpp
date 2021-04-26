@@ -1,3 +1,4 @@
+#include "GPU/cuda_help.hpp"
 #include "Trace_interface.hpp"
 #include "traceVars.hpp"
 void fillTraceArrays()
@@ -5,6 +6,7 @@ void fillTraceArrays()
 
     if(cudaCalc)
     {
+        //fill an array of ray pair-bundles
         //marked = new int[GRID*nbeams*numstored]{0}; //nx nz nrays nbeams
         cudaMallocManaged(&dedendx, sizeof(double)*GRID);
         //dedendx = new double[GRID]; //nx nz
@@ -15,6 +17,7 @@ void fillTraceArrays()
         cudaMallocManaged(&z, sizeof(double)*nz);
         //z = new double[nz]{0.0}; //nx nz
         cudaMallocManaged(&eden, sizeof(double)*GRID);
+        cudaMallocManaged(&edep, sizeof(LinkCross*)*RAYS);
         //eden = new double[GRID]; //nx nz
         cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
         cudaMallocManaged(&present, sizeof(int)*GRID*nbeams);
@@ -31,12 +34,17 @@ void fillTraceArrays()
         x = new double[nx];
         z = new double[nz];
         eden = new double[GRID];
-        marked = new int[GRID*numstored*nbeams];
-        present = new int[GRID*nbeams];
-        boxes = new int[CROSS*2];
+        edep = new LinkCross*[RAYS]{0};
+        marked = new int[GRID*numstored*nbeams]{0};
+        present = new int[GRID*nbeams]{0};
+        boxes = new int[CROSS*2]{0};
         wpe = new double[GRID];
         crossesx = new double[CROSS];
         crossesz = new double[CROSS];
+    }
+    for(int i =0; i < CROSS*2; i++)
+    {
+        boxes[i] = 0;
     }
     double* edenTemp = new double[nx];
     span(edenTemp, 0.1,0.4, nx);

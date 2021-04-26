@@ -1,9 +1,86 @@
-#include "cuda_help.hpp"
+#include "GPU/cuda_help.hpp"
 #include "implSim.hpp"
 
 
-
-
+__device__ LinkCross* new_LinkCross(double* values, unsigned int ix, unsigned int iz, unsigned int cross, int nz)//creates a new link in a "crossing" chain, keeps track of 
+{
+    LinkCross* result;
+    result = (LinkCross*)malloc(sizeof(LinkCross));
+    if(!result)
+    {
+        return NULL;
+    }
+    if(values != NULL)
+    {
+        for(int i = 0; i < 9;i++)
+        {
+            result->vals[i] = values[i]; 
+        }
+    }
+    result->location = ix*nz+iz;
+    result->cross = cross;
+    result->next = NULL;
+    return result;
+};
+LinkCross* new_LinkCrossHost(double* values, unsigned int ix, unsigned int iz, unsigned int cross)//creates a new link in a "crossing" chain, keeps track of 
+{
+    LinkCross* result;
+    if(cudaCalc)
+    {
+        cudaError_t err = cudaMallocManaged(&result, sizeof(LinkCross));
+        if(err)
+        {
+            printf("%s\n", cudaGetErrorString(err));
+        }
+    }else
+    {
+        result = new LinkCross;
+    }
+    if(!result)
+    {
+        return NULL;
+    }
+    if(values != NULL)
+    {
+        for(int i = 0; i < 9;i++)
+        {
+            result->vals[i] = values[i]; 
+        }
+    }
+    result->location = ix*nz+iz;
+    result->cross = cross;
+    result->next = NULL;
+    return result;
+};
+__device__ int add_LinkCrossAtomic(LinkCross* entry, LinkCross* newVal)//only adds if current pointer is null, uses CUDA atomicCAS
+{
+    if(entry == NULL)
+    {
+        return 0;
+    }
+    unsigned long long int result = atomicCAS((unsigned long long int*)entry, 0x0, (unsigned long long int)newVal);
+    if(result != 0x0)
+    {
+        return 0;
+    }
+    return 1;
+};
+__device__ void add_LinkCross(LinkCross* entry, LinkCross* newVal)//only adds if current pointer is null, uses CUDA atomicCAS
+{
+    if(entry == NULL)
+    {
+        return;
+    }
+    entry->next = newVal;
+};
+void add_LinkCrossHost(LinkCross* entry, LinkCross* newVal)//only adds if current pointer is null, uses CUDA atomicCAS
+{
+    if(entry == NULL)
+    {
+        return;
+    }
+    entry->next = newVal;
+};
 TrackArrs* deviceTrackArrs(int device)
 {
   TrackArrs* constArrs;
@@ -68,6 +145,8 @@ TrackConst* deviceTrackConst(int device)
   //cudaMemAdvise(constVals, sizeof(TrackConst), cudaMemAdviseSetReadMostly, device);
   return constVals;
 }
+
+/*
 //GPU IO handlers
 void CGPUMemCpy(void* dest, void* source, size_t size, int direction)
 {
@@ -152,3 +231,4 @@ void CGPUDataTrans(GConfig* device, int dir)//function to transfer large quantit
     }
     
 }
+*/

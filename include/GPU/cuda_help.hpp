@@ -1,3 +1,5 @@
+
+  
 //define device variables
 //define other functions necessary for GPU operation
 #ifndef CUDAHELP
@@ -20,7 +22,6 @@
   extern std::vector<std::string> varNames;
   extern std::vector<size_t> sizes;
   
-
 
 
   //define a struct to hold TrackRay Constants->passing once by reference should suffice
@@ -46,24 +47,37 @@
     double c_cu;
     double ncrit_cu;
   };
+  struct LinkCross
+  {
+    void* next;
+    double vals[9];
+    unsigned int cross;
+    unsigned int location;//save space, index by modular arithmetic
+  };
+  extern __device__ void add_LinkCross(LinkCross* entry, LinkCross* newVal);
+  extern  void add_LinkCrossHost(LinkCross* entry, LinkCross* newVal);
+
+  extern __device__ LinkCross* new_LinkCross(double* values, unsigned int  ix, unsigned int  iz, unsigned int cross, int nz);
+  extern LinkCross* new_LinkCrossHost(double* values,  unsigned int  ix, unsigned int  iz,unsigned int cross);
   //define a struct to hold TrackRay Constants->passing once by reference should suffice
   struct TrackArrs
   {
     //spatial information
     double* dedendx_cu;
     double* dedendz_cu;
+    //char* rayZones_cu;
     double* x_cu;
     double* z_cu;
     double* crossesx_cu;
     double* crossesz_cu;
-    double* edep_cu;
+    LinkCross** edep_cu;
     double* wpe_cu;
     int* boxes_cu;
     int* ints_cu;
   };
   extern TrackArrs* deviceTrackArrs(int device);
   extern TrackConst* deviceTrackConst(int device);
-
+  
   //inlined flattened array accessor/mutator methods
   template <typename T>
   __forceinline__ __device__ 

@@ -94,6 +94,10 @@ void trackRays()
     kz0[i] = 0;
     pow_x[i] = exp(-1*pow(pow(phase_x[i]/sigma,2.0),4.0/2.0));
     phase_x[i] += offset;
+    if(i == 909)
+    {
+      printf("%e %e\n", curr->xinit,curr->zinit);
+    }
     //Beam one lies along the z axis, x axis is constant
   }
   int finalts[nrays][nbeams];
@@ -134,6 +138,7 @@ void trackRays()
     rayinit* curr = raycoor + i;
     double xinit = curr->xinit;
     double zinit = curr->zinit;
+    
     double kxinit = curr->kxinit;
     double kzinit = curr->kzinit;
     beam = curr->beam;
@@ -142,17 +147,38 @@ void trackRays()
     launch_ray_XZ(raycoor[i],rnum);
   }
   auto stopL = std::chrono::high_resolution_clock::now();
-
+  /*for(int i = 0; i < nbeams;i++)
+  {
+    for(int j = 0; j < nrays;j++)
+    {
+      for(int m = 0; m < ncrossings;m++)
+      {
+        int ix = vec4D(boxes, i,j,m,0,nrays,ncrossings,2); 
+        int iz = vec4D(boxes, i,j,m,0,nrays,ncrossings,2); 
+        if(!ix || !iz)
+        {
+          break;
+        }
+        ix--;
+        iz--;
+        int cond1 = (abs(ix) > nx || ix < 0);
+        int cond2 = (iz < 0 || abs(iz) > nz);
+        if(cond1 || cond2)
+        {
+          printf("(%d,%d,%d): [%d, %d]\n", i,j,m,ix, iz);
+        }
+      }
+    }
+  }*/
 
 
 
   //Loop to launch beam 2 rays
   //#pragma omp parallel for num_threads(threads)
 
-  if(printUpdates)
-  {
-    //cout << "Finished Launching Rays" << endl;
-  }
+  
+    cout << "Finished Launching Rays" << endl;
+  
   auto startI = std::chrono::high_resolution_clock::now();
   int* markedTemp = new int[GRID*RAYS];
   fillTempMarked(markedTemp);

@@ -1,3 +1,4 @@
+#include "GPU/cuda_help.hpp"
 #include "Trace_interface.hpp"
 using namespace std;
 
@@ -127,7 +128,7 @@ void track(int raynum, double xinit, double zinit, double kx_init, double kz_ini
   }
 }
 
-//initializing necessary arrays for the calculation
+/*//initializing necessary arrays for the calculation
 void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, double urayinit, int raynum, int beam)
 {
 //Launch_Ray_XZ Array Declaration
@@ -228,7 +229,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
           thisz = j;
           break;
          }
-      }*/
+      }
       int discreteX = ((myx-xmin)/dx);
       int discreteZ = ((myz-zmin)/dz);
 
@@ -307,7 +308,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         //markingx = thisx;
         //markingz = thisz;
         //Deposit energy due to the incident ray
-  	    /*double increment = thisInit.urayinit;
+  	    double increment = urayinit;
         double xp = (myx - (x[thisx]+dx/2.0))/dx;
         double zp = (myz - (z[thisz]+dz/2.0))/dz;
         int xadd = (xp >= 0) ? 1 : -1;
@@ -318,7 +319,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         double a2 = (1.0-dl)*dm;		// green	: (x+1, z  )
         double a3 = dl*(1.0-dm);		// yellow	: (x  , z+1)
         double a4 = dl*dm;			// red 		: (x+1, z+1)
-        if((xadd != xadd) && (zadd != zadd))
+        /*if((xadd != xadd) && (zadd != zadd))
         {
 
           break;
@@ -329,7 +330,50 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
         vec4DI(edep, beam, raynum, thisx+1, thisz+zadd+1, nrays, nx+2,nz+2, a3*increment);// yellow
         vec4DI(edep, beam, raynum, thisx+xadd+1, thisz+zadd+1, nrays, nx+2,nz+2, a4*increment);	// red
 
-        */
+        
+        
+        int cnt = 0;
+        #pragma omp critical
+        {
+          LinkCross** adj1 = (LinkCross**)vec2DP(edep, thisx+1, thisz+1,nz+2);// blue
+          LinkCross** adj2 = (LinkCross**)vec2DP(edep, thisx+xadd+1, thisz+1,nz+2);// green
+          LinkCross** adj3 =  (LinkCross**)vec2DP(edep, thisx+1, thisz+zadd+1,nz+2);// yellow
+          LinkCross** adj4 =  (LinkCross**)vec2DP(edep, thisx+xadd+1, thisz+zadd+1,nz+2);	// red
+          //getchar();
+          LinkCross* thisCross1 = new_LinkCrossHost(a1, raynum);
+          thisCross1->next=*adj1;
+          vec2DW(edep, thisx+1, thisz+1,nz+2, thisCross1);
+
+          LinkCross* thisCross2 = new_LinkCrossHost(a2, raynum);
+          thisCross2->next=*adj2;
+          vec2DW(edep, thisx+xadd+1, thisz+1,nz+2, thisCross2);
+
+          LinkCross* thisCross3 = new_LinkCrossHost(a3, raynum);
+          thisCross3->next=*adj3;
+          vec2DW(edep, thisx+1, thisz+zadd+1,nz+2, thisCross3);
+
+          LinkCross* thisCross4 = new_LinkCrossHost(a4, raynum);
+          thisCross4->next=*adj4;
+          vec2DW(edep, thisx+xadd+1, thisz+zadd+1,nz+2, thisCross4);
+        }
+        LinkCross* expected = __LONG_LONG_MAX__;
+        do
+        {
+          #pragma omp atomic compare capture
+          {
+            expected = *adj1;
+            thisCross1->next=expected;
+            if (expected != adj1)
+            {
+              expected ;
+            }
+          }
+        }while(expected == __LONG_LONG_MAX__);
+        #pragma omp atomic compare capture
+        {
+          s_cap = s;
+          if (s < p) s = p;
+        }
         x_init = myx;
         z_init = myz;
         myvxprev = myvx;
@@ -351,9 +395,246 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
   //delete [] amplitude_norm;
   
 }
+*/
+
+void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, double urayinit, int raynum, int beam)
+{
+//Launch_Ray_XZ Array Declaration
+  int thisx = 0;
+  int thisz = 0;
+  int thisx_0 = 0;
+  int thisz_0 = 0;
+  //double uray;
+  //int //markingxprev;// = new double[nt]{0.0};
+  //int //markingzprev;// = new double[nt]{0.0};
+  //int //markingx;// = new double[nt]{0.0};
+  //int //markingz;
+  double myx = x_init;
+  double myz = z_init;
+  double myvx;
+  double myvz;
+  double mykx;
+  double mykz;
+  double myvxprev;
+  double myvzprev;
+  //determining the initial x grid index within the desired range to track the beam
 
 
+  //determining the initial z grid index within the desired range to track the beam
+  for(int i = 0;i < nz;i++)
+  {
+    if(z_init - z[i] <= ((0.5+1.0e-10)*dz + 1e-11) && z_init - z[i] >= -1*((0.5+1.0e-10)*dz + 1e-11) )
+    {
 
+      thisz_0=i;
+      break;
+    }
+  }
+
+  for(int i = 0;i < nx;i++)
+  {
+
+    double initX = x_init;
+    double currX = x[i];
+    if(initX - currX <= ((0.5+1.0e-10)*dx + 1e-11) && initX - currX >= -1*((0.5+1.0e-10)*dx + 1e-11) )
+    {
+      thisx_0=i;
+      break;
+    }
+  }
+  double immdep[9]{0.0}; 
+  LinkCross* curr = new_LinkCrossHost(NULL, thisx_0, thisz_0, 0);
+  edep[beam*nrays+raynum] = curr;//declare the header value, defined by negative deposition
+  //determining the velocity characteristics of the ray based upon its initial position
+  double k = sqrt((pow(omega,2.0)-pow(vec2D(wpe,thisx_0, thisz_0, nz),2.0))/pow(c,2.0));
+  double knorm = sqrt(pow(kx_init,2.0)+pow(kz_init,2.0));
+  mykx=(kx_init/knorm)*k;			// Normalized value for the ray's initial k_x
+  mykz=(kz_init/knorm)*k;			// Normalized value for the ray's initial k_z
+  myvxprev = pow(c,2.0)*mykx/omega;                   // v_group, group velocity (dw/dk) from D(k,w).
+  myvzprev =  pow(c,2.0)*mykz/omega;
+  ////markingxprev = thisx_0;
+  ////markingzprev = thisz_0;
+  //__________Time Stepping__________
+    int numcrossing = 0;
+
+    //looping through time intervals
+    for(int i = 1; i < nt;i++)
+    {
+      double forcex = pow(c,2.0)/(2.0*ncrit)*vec2D(dedendx,thisx_0,thisz_0, nz);
+      double forcez = pow(c,2.0)/(2.0*ncrit)*vec2D(dedendz,thisx_0,thisz_0, nz);
+
+
+      myvx = myvxprev - forcex*dt;
+      myvz = myvzprev - forcez*dt;
+      myx += myvx*dt;
+      myz += myvz*dt;
+
+      int search_index_x = 1;
+      int search_index_z = 1;
+      int thisx_m = fmax(0, thisx_0-search_index_x );
+      int thisx_p = fmin(nx-1, thisx_0+search_index_x);
+      int thisz_m = fmax(0, thisz_0-search_index_z);
+      int thisz_p = fmin(nz-1, thisz_0+search_index_z);
+     /* //determining the current x index of the ray
+      for(int j = thisx_m; j <= thisx_p;j++)
+      {
+        if ( myx - x[j] <= ((0.5+1.0e-10)*dx + 1e-12) && myx - x[j] >= -1*((0.5+1.0e-10)*dx + 1e-12))
+        {
+          thisx = j;
+          break;
+        }
+      }
+      if(raynum == 0 && beam == 0)
+      {
+
+       // printf("check 2 %d\n",i);
+      }
+      //determining the current z index of the ray
+      for(int j = thisz_m; j <= thisz_p; j++)
+      {
+        if (myz - z[j] <= ((0.5+1.0e-10)*dz + 1e-12) && myz - z[j] >= -1*((0.5+1.0e-10)*dz + 1e-12))
+        {
+
+          thisz = j;
+          break;
+         }
+      }*/
+      int discreteX = ((myx-xmin)/dx);
+      int discreteZ = ((myz-zmin)/dz);
+
+      thisx = discreteX + (myx-(discreteX+xmin)*dx > dx/2);
+      thisz = discreteZ + (myz-(discreteZ+zmin)*dz > dz/2);
+      //double linez[2]={z_init, myz};
+      //double linex[2]={x_init, myx};
+      int lastx = 10000;
+      int lastz = 10000;
+      int check = 0;
+      //iterating through the selected portions of the x spatial tracking arrays
+      //boxes stores the spatial locations of each crossing of each ray
+      //Marked = trajectory of a single ray, boxes = coordinates of each ray intersection
+      for(int j = thisx_m; j <= thisx_p;j++)
+      {
+        double currx = x[j]-dx/2;//crossing into 
+        //if the ray is currently between within the desired caustic zone for a crossing
+        if((myx > currx && x_init <= (currx + 1e-10)) || (myx < currx && x_init >= (currx- 1e-10)))
+        {
+          double m = (myz - z_init)/(myx-x_init);
+          double b = myz - myx*m;
+          double crossx = m*currx+b;
+          //if the ray has moved since last update
+          if(abs(crossx-lastz)>1.0e-20)
+          {
+            vec3DW(crossesx, beam, raynum, numcrossing, nrays, ncrossings,currx);
+            vec3DW(crossesz, beam, raynum, numcrossing, nrays, ncrossings,crossx);
+            //if ray is still within the grid
+            if(myx < (xmax+dx/2 + 1e-10) && myx > (xmin-dx/2 - 1e-10))
+            {
+              printf("Added X\n");
+              //printf("(%f, %f), ([%f,%f], [%f, %f]) \n", myx, myz, dx*thisx+ xmin, dx*thisx+dx + xmin, dz*thisz+ zmin, dz*thisz+dz+ zmin);
+              vec4DW(boxes, beam,raynum,numcrossing,0, nrays, ncrossings, 2, thisx+1);//[beam][raynum][numcrossing][0]
+              vec4DW(boxes, beam,raynum,numcrossing,1, nrays, ncrossings, 2, thisz+1);//[beam][raynum][numcrossing][1]
+              //vec4DW(marked, beam,raynum,thisx,thisz, nrays, nx, nz, 1);
+            }
+            check = 1;
+            LinkCross* newCross = new_LinkCrossHost(immdep, thisx, thisz, numcrossing); 
+            curr->next = newCross;
+            curr = newCross;
+            for(int i = 0; i < 9;i++)
+            {
+              immdep[i] = 0;
+            }
+            lastx = currx;
+            
+            numcrossing += 1;
+            break;
+          }
+        }
+      }
+
+      //iterating through the selected portions of the z spatial tracking arrays
+      //Same idea as previous loop, but for the Z coordinate instead of x
+        for(int j = thisz_m; j <= thisz_p;j++)//for [thisz_m, thisz_p] previous z locations, iterate through spatial locations centered on thisz
+        {
+          double currz = z[j]-dz/2;//center of the jth zone
+          //printf("REE\n");
+          if((myz > (currz) && z_init < (currz + 1e-10)) || (myz < (currz) && z_init > (currz - 1e-10)))//if myz is approximately equal to a zone crossing
+          {
+
+            double m = (myx - x_init)/(myz-z_init);
+            double b = myx - myz*m;
+            double crossz = m*currz+b;
+            if(abs(crossz-lastx) > 1.0e-20)
+            {
+              vec3DW(crossesx, beam, raynum, numcrossing, nrays, ncrossings,crossz);
+              vec3DW(crossesz, beam, raynum, numcrossing, nrays, ncrossings,currz);
+              if(myz < (zmax+dz/2 +1e-10) && myz > (zmin-dz/2-1e-10))
+              {
+                              printf("Added Z\n");
+
+               vec4DW(boxes, beam,raynum,numcrossing,0, nrays, ncrossings, 2, thisx+1);//[beam][raynum][numcrossing][0]
+               vec4DW(boxes, beam,raynum,numcrossing,1, nrays, ncrossings, 2, thisz+1);//[beam][raynum][numcrossing][1]
+              // vec4DW(marked, beam,raynum,thisx,thisz, nrays, nx, nz, 1);
+              }
+              lastz = currz;
+              //if(!check)
+              //{
+                LinkCross* newCross = new_LinkCrossHost(immdep, thisx, thisz, numcrossing); 
+                curr->next = newCross;
+                curr = newCross;
+                numcrossing += 1;
+                for(int i = 0; i < 9;i++)
+                {
+                  immdep[i] = 0;
+                }
+             // }
+              break;
+            }
+          }
+        }
+        //Sets the "initial conditions" for the next iteration
+        thisx_0 = thisx;
+        thisz_0 = thisz;
+        //markingx = thisx;
+        //markingz = thisz;
+        //Deposit energy due to the incident ray
+  	    double increment = urayinit;
+        double xp = (myx - (x[thisx]+dx/2.0))/dx;
+        double zp = (myz - (z[thisz]+dz/2.0))/dz;
+        int xadd = (xp >= 0) ? 1 : -1;
+        int zadd = (zp >= 0) ? 1 : -1;
+        double dl = zp * zadd;
+        double dm = xp * xadd;
+        double a1 = (1.0-dl)*(1.0-dm);		// blue		: (x  , z  )
+        double a2 = (1.0-dl)*dm;		// green	: (x +- 1, z  )
+        double a3 = dl*(1.0-dm);		// yellow	: (x  , z +- 1)
+        double a4 = dl*dm;			// red 		: (x +- 1, z +- 1)
+        
+        immdep[0] += a1;//thisx, thisz
+        immdep[3*(1+xadd)] += a2; //thisx + 1, thisz
+        immdep[1+zadd] += a3; //thisx, thisz + 1
+        immdep[3*(1+xadd) + (1+zadd)] += a4; //thisx + 1, thisz + 1
+        
+        x_init = myx;
+        z_init = myz;
+        myvxprev = myvx;
+        myvzprev = myvz;
+        ////markingxprev = //markingx;
+        ////markingzprev = //markingz;
+      if ( (myx < (xmin-(dx/2.0))) || (myx > (xmax+(dx/2.0))))
+      {
+        
+        break;                  // "breaks" out of the i loop once the if condition is satisfied
+      } else if ( (myz < (zmin-(dz/2.0))) || (myz > (zmax+(dz/2.0)))){
+           // the "|" means "or" (symbol above the return key)
+
+        break;
+      }
+    }
+  //delete [] mytime;
+  //delete [] nuei;
+  //delete [] amplitude_norm;
+  
+}
 
 
 

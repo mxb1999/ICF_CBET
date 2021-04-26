@@ -3,7 +3,149 @@
 
 using namespace H5;
 
+double* getFieldOutputZOI()
+{
+  double* WPlot1 = new double[GRID]{0.0};
+  double* WPlot2 = new double[GRID]{0.0};
+  double* WPlotTotal = new double[GRID]{0.0};
+  int* incident1 = new int[GRID]{0};
+  int* incident2 = new int[GRID]{0};
 
+  int i = 0;
+  for(int j = 0; j < nrays;j++)
+  {
+    LinkCross* q = edep[i*nrays+j];
+    for(int m = 0; m < ncrossings;m++)
+    {
+      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
+      if(!boxx || !boxz || q == NULL)
+      {
+        break;
+      }
+      boxx--;
+      boxz--;
+      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      double* values = q->vals;
+      int lxLim = (boxx > 0) ? -1 : 0;
+      int uxLim = (boxx < nx-1) ? 1 : 0;
+      int lzLim = (boxz > 0) ? -1 : 0;
+      int uzLim = (boxz < nz-1) ? 1 : 0;
+      for(int b = lxLim; b < uxLim;b++)
+      {
+        for(int l = lzLim; l < uzLim;l++)
+        {
+          WPlot1[(boxx+b)*nz+(boxz+l)] += rayNRG*values[3*(b+1)+(l+1)];
+          incident1[(boxx+b)*nz+(boxz+l)] += 1;
+        }
+      }
+        //WPlot1[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      q = (LinkCross*)q->next;
+      
+    }
+  }
+  i = 1;
+  for(int j = 0; j < nrays;j++)
+  {
+    LinkCross* q = edep[i*nrays+j];
+
+    for(int m = 0; m < ncrossings;m++)
+    {
+      q = (LinkCross*)q->next;
+      
+      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
+      if(!boxx || !boxz || q == NULL)
+      {
+        break;
+      }      
+      boxx--;
+      boxz--;
+      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      double* values = q->vals;
+      int lxLim = (boxx > 0) ? -1 : 0;
+      int uxLim = (boxx < nx-1) ? 1 : 0;
+      int lzLim = (boxz > 0) ? -1 : 0;
+      int uzLim = (boxz < nz-1) ? 1 : 0;
+      for(int b = lxLim; b < uxLim;b++)
+      {
+        for(int l = lzLim; l < uzLim;l++)
+        {
+          WPlot2[(boxx+b)*nz+(boxz+l)] += rayNRG*values[3*(b+1)+(l+1)];
+          incident2[(boxx+b)*nz+(boxz+l)] += 1;
+
+        }
+      }
+       // WPlot2[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      
+    }
+  }
+  for(int i = 0; i < nx;i++)
+  {
+    for(int j = 0; j < nz;j++)
+    {
+      if(vec3D(present, 0,i,j,nx,nz) && vec3D(present, 1,i,j,nx,nz))
+        printf("%d %d :: %d %d\n", incident1[i*nz+j],incident2[i*nz+j],vec3D(present, 0,i,j,nx,nz),vec3D(present, 1,i,j,nx,nz));
+      WPlotTotal[i*nz+j] +=  8.53e-10*sqrt(WPlot1[i*nz+j]/fmax(incident1[i*nz+j],1)+ WPlot2[i*nz+j]/fmax(incident2[i*nz+j],1))*(1.053/3.0);//8.53e-10*sqrt(WPlot1[i*nz+j]+WPlot2[i*nz+j] + 1e-10)*(1.053/3.0);//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+     
+    }
+  }
+  return WPlotTotal;
+}
+double* getFieldOutputDirect()
+{
+  double* WPlot1 = new double[GRID]{0.0};
+  double* WPlot2 = new double[GRID]{0.0};
+  double* WPlotTotal = new double[GRID]{0.0};
+
+  int i = 0;
+  for(int j = 0; j < nrays;j++)
+  {
+    for(int m = 0; m < ncrossings;m++)
+    {
+      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
+      if(!boxx || !boxz)
+      {
+        break;
+      }
+      boxx--;
+      boxz--;
+      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      WPlot1[(boxx)*nz+(boxz)] += rayNRG/vec3D(present, i, boxx,boxz,nx,nz);
+    }
+  }
+  i = 1;
+  for(int j = 0; j < nrays;j++)
+  {
+
+    for(int m = 0; m < ncrossings;m++)
+    {
+      
+      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
+      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
+      if(!boxx || !boxz)
+      {
+        break;
+      }      
+      boxx--;
+      boxz--;
+      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      WPlot2[(boxx)*nz+(boxz)] += rayNRG/vec3D(present, i, boxx,boxz,nx,nz);
+       // WPlot2[boxx*nz+boxz] += vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      
+    }
+  }
+  for(int i = 0; i < nx;i++)
+  {
+    for(int j = 0; j < nz;j++)
+    {
+      WPlotTotal[i*nz+j] +=  8.53e-10*sqrt(WPlot1[i*nz+j]+ WPlot2[i*nz+j])*(1.053/3.0);//8.53e-10*sqrt(WPlot1[i*nz+j]+WPlot2[i*nz+j] + 1e-10)*(1.053/3.0);//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+     
+    }
+  }
+  return WPlotTotal;
+}
 //determines the type based off of a user string
 int determineType(string type)
 {
@@ -212,8 +354,8 @@ void writePlotArrays()
     {
       for(int j = 0; j < nz;j++)
       {
-        vec2DW(edenplot,i,j,nz, vec2D(eden,i,j,nz)/ncrit);
-
+        //vec2DW(edenplot,i,j,nz, vec2D(eden,i,j,nz)/ncrit);
+      /*
         if(calcCBET)
         {
         vec2DW(i_b_newplot,i,j,nz, 8.53e-10*sqrt(fmax(1.0e-10,vec3D(i_b_new,0,i,j,nx,nz))+fmax(1.0e-10,vec3D(i_b_new,1,i,j,nx,nz)))*(1.053/3.0));
@@ -225,10 +367,9 @@ void writePlotArrays()
         {
           vec2DW(anyInt,i,j,nz, 1);
         }
-        for(int m = 0;m<nbeams;m++)
-        {
-          vec2DI(edepplot,i,j,nz,vec3D(edep,m,i,j,nx,nz));
-        }
+        */
+       // vec2DW(edepplot,i,j,nz,vec3D(edep,0,i,j,nx+2,nz+2)+vec3D(edep,1,i,j,nx+2,nz+2));
+        
       }
     }
 }
@@ -248,91 +389,26 @@ void updateH5()
   }
   //Output arrays to be plotted in Python using included script'
   fflush(stdout);
-      //edepplot = new double[nx*nz]{0.0};
+  //edepplot = new double[nx*nz]{0.0};
 
-  /*for(int i = 0; i < nx;i++)
-  {
-    for(int j = 0; j < nz;j++)
-    {
-      double acc = 0.0;
-      for(int m = 0; m < nrays;m++)
-      {
-        acc+= vec4D(edep, 1,m,i,j,nrays,nx+2, nz+2);
-      }
-      acc = vec3D(edep_flat, 1,i,j,nx+2, nz+2) + vec3D(edep_flat, 0,i,j,nx+2, nz+2);
-      vec2DW(edepplot,i,j,nz, acc);
-    }
-  }*/
-  //Core output arrays
-  if(calcCBET)
-  {
-  /*writeArr(ib_orig, 0, store, "/Original_Field", 2, new int[2]{nx,nz});//original electric field
-  writeArr(i_b_newplot, 0, store, "/New_Field", 2, new int[2]{nx,nz});//Post-CBET electric field
-  writeArr(perturbation, 0, store, "/density_perturbation", 2, new int[2]{nx,nz});//electron density pertubation (or indicative of it)
-  writeArr(W_new, 0, store, "/new_energy1", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 1
-
-  writeArr(W_new+(nx*nz), 0, store, "/new_energy2", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
-  writeArr(W, 0, store, "/original_energy1", 2, new int[2]{nx,nz});//original energy deposited
-  writeArr(W+(nx*nz), 0, store, "/original_energy2", 2, new int[2]{nx,nz});//original energy deposited
-   
-  writeArr(anyInt, 1, store, "/nonZero", 2, new int[2]{nx,nz});//stores any location where a ray has been as one
-  
-  writeArr(gain2arr, 0, store, "/gain2", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
-  writeArr(mag, 0, store, "/mag", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
-  writeArr(u_flow, 0, store, "/u_flow", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET*/
-  }
-
-  double* WPlot1 = new double[GRID]{0.0};
-  double* WPlot2 = new double[GRID]{0.0};
-  double* WPlotTotal = new double[GRID]{0.0};
-
-  int i = 0;
-  for(int j = 0; j < nrays;j++)
-  {
-    for(int m = 0; m < ncrossings;m++)
-    {
-      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
-      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
-      if(!boxx || !boxz)
-      {
-        break;
-      }
-      boxx--;
-      boxz--;
-      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
-      
-        WPlot1[boxx*nz+boxz] = vec3D(i_b_new,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
-      
-      
-    }
-  }
-  i = 1;
-  for(int j = 0; j < nrays;j++)
-  {
-    for(int m = 0; m < ncrossings;m++)
-    {
-      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
-      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
-      if(!boxx || !boxz)
-      {
-        break;
-      }
-      boxx--;
-      boxz--;
-      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
-      
-        WPlot2[boxx*nz+boxz] = vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
-      
-    }
-  }
   for(int i = 0; i < nx;i++)
   {
     for(int j = 0; j < nz;j++)
     {
-      WPlotTotal[i*nz+j] =  WPlot1[i*nz+j]+WPlot2[i*nz+j];//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
-     
+      
+      //vec2DW(edepplot,i,j,nz,vec3D(edep,0,i,j,nx+2,nz+2)+vec3D(edep,1,i,j,nx+2,nz+2));
     }
   }
+  int interpolate = 0;
+  double* WPlotTotal;
+  if(interpolate)
+  {
+    WPlotTotal = getFieldOutputZOI();
+  }else
+  {
+    WPlotTotal = getFieldOutputDirect();
+  }
+  
   
     edenplot = new double[nx*nz]{0.0};
     for(int i = 0; i < nx;i++)
@@ -342,10 +418,18 @@ void updateH5()
         vec2DW(edenplot,i,j,nz, vec2D(eden,i,j,nz)/ncrit);
       }
     }
+  double* initIntensity = new double[nrays];
+  for(int i = 0; i < nrays;i++)
+  {
+    initIntensity[i] = vec3D(i_b,0,i,0,nrays, ncrossings);
+  }
+
+    writeArr(initIntensity, 0, store, "/initI", 1, new int[1]{nrays});//energy deposited, CBET multiplier for beam 2
+
   writeArr(WPlotTotal, 0, store, "/new_field", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
-  writeArr(WPlot1, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
-  writeArr(WPlot2, 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
-  writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
+  //writeArr(WPlot1, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
+  //writeArr(WPlot2, 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
+  //writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
   writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
   writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient

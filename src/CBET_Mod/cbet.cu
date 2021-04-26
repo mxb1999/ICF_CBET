@@ -159,7 +159,6 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
     {
       continue;
     }
-    double cumProd = vec3D_cu(wMult, q, r, rayCross, nrays_cu, ncrossings_cu);
 
     
     double kmag = (omega_cu/c_cu)*sqrt(epsilon);
@@ -184,13 +183,9 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
     double oldEnergy2 = multAcc;
     double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
     limmult*=newEnergy1Mult;
-    printf("multAcc %e\n", multAcc);
+    //printf("multAcc %e\n", multAcc);
     }
-    double curr = limmult;
-    if(beam == 1  && limmult > 1.5)
-    {
-      printf("Limmult %d %d %e\n",raynum, m, limmult);
-    }       
+    double curr = limmult;     
     vec3DW_cu(wMult, beam,raynum,m, nrays_cu, ncrossings_cu, limmult);
 
     double currDev = abs(prevVal-curr)/prevVal;
@@ -214,13 +209,13 @@ updateIterVals(double* wMultOld, double* wMult, double* i_b, double* i_b_new, in
       return;
   }*/
   int raynum = (index) % nrays;
-  double i0 = vec3D_cu(i_b, beam, raynum, 0, nrays, ncrossings);
+  //double i0 = vec3D_cu(i_b, beam, raynum, 0, nrays, ncrossings);
   for(int cross = 1; cross < ncrossings;cross++)
   {
     double newMult = vec3D_cu(wMult, beam, raynum, cross, nrays, ncrossings);
     vec3DW_cu(wMultOld, beam, raynum, cross, nrays,ncrossings, newMult);
-    vec3DW_cu(i_b, beam, raynum, cross, nrays,ncrossings, newMult*i0);
-    i0 = vec3D_cu(i_b, beam, raynum, cross, nrays,ncrossings);
+    //vec3DW_cu(i_b, beam, raynum, cross, nrays,ncrossings, newMult*i0);
+    //i0 = vec3D_cu(i_b, beam, raynum, cross, nrays,ncrossings);
   }
 
 }
@@ -237,12 +232,7 @@ void updateIterValsSerial(double* wMultOld)
       for(int i = 0; i < ncrossings;i++)
       {
         double newMult = vec3D(wMult, beam, raynum, i, nrays, ncrossings);
-        double newIntensity = vec3D(i_b_new, beam, raynum, i, nrays, ncrossings);
-        double oldIntensity = vec3D(i_b, beam, raynum, i, nrays, ncrossings);
-        double oldMultVal = vec3D(wMultOld, beam, raynum, i, nrays, ncrossings);
         vec3DW(wMultOld, beam, raynum, i, nrays,ncrossings, newMult);
-        vec3DW(i_b, beam, raynum, i, nrays,ncrossings, newIntensity);
-    
       }  
     }
   }
@@ -348,9 +338,9 @@ void launchCBETKernel()
     {
       cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
       cudaDeviceSynchronize();
-      fflush(stdout);
+      //fflush(stdout);
 
-      printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
+      //printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
       fflush(stdout);
       updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);
       cudaDeviceSynchronize();
@@ -367,7 +357,7 @@ void launchCBETKernel()
       {
         break;
       }
-      printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
+      //printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
       fflush(stdout);
 
     }
