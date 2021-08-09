@@ -37,17 +37,25 @@ void freeTraceArrs()
 {
   if(cudaCalc)
   {
-    cudaFree(dedendx);
-    cudaFree(dedendz);
-    cudaFree(x);
-    cudaFree(z);
-    cudaFree(eden);
-    cudaFree(marked);
-    cudaFree(present);
-    cudaFree(boxes);
-    cudaFree(wpe);
-    cudaFree(crossesx);
-    cudaFree(crossesz);
+    //cudaError_t err = cudaFree((void*)dedendx);
+    //printf("1 %s\n", cudaGetErrorString(err));
+    //err = cudaFree(dedendz);
+    //printf("2 %s\n", cudaGetErrorString(err));
+
+    cudaError_t err = cudaFree(x);
+    err = cudaFree(z);
+    err = cudaFree(eden);
+    err = cudaFree(marked);
+    err = cudaFree(present);
+
+    err = cudaFree(boxes);
+
+    err = cudaFree(wpe);
+
+    //err = cudaFree(crossesx);
+    //printf("10 %s\n", cudaGetErrorString(err));
+    //err = cudaFree(crossesz);
+    //printf("11 %s\n", cudaGetErrorString(err));
   }else
   {
     delete [] dedendx;

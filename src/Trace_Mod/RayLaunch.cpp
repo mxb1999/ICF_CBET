@@ -23,7 +23,6 @@ void fillTempMarked(int* markedTemp)//marked temp indexed by rays
       }
     }
   }
-  
 }
 void fillMarked(int* markedTemp)//marked temp indexed by rays
 {
@@ -62,18 +61,21 @@ void trackRays()
   }
   int beam;
   //tracking arrays
-  double x0[nrays*nbeams];//initial x position of ray
-  double z0[nrays*nbeams];//initial z position of ray
-  double kx0[nrays*nbeams];//initial x velocity of ray
-  double kz0[nrays*nbeams];//initial z velocity of ray
-  double phase_x[nrays];//phase of ray
-  double pow_x[nrays];//power delivery of ray
+  double* x0 = new double[nrays*nbeams];//initial x position of ray
+  double* z0 = new double[nrays*nbeams];//initial z position of ray
+  double* phase_x = new double[nrays];//phase of ray
+  double* pow_x = new double[nrays];//power delivery of ray
   //initializing arrays for beam 1
   span(phase_x,beam_min_z, beam_max_z, nrays);
   span(z0, beam_min_z, beam_max_z, nrays);
   rayinit* raycoor;
-  cudaMallocManaged(&raycoor, sizeof(rayinit)*RAYS);
-    double interpTerm[nrays*nbeams];
+  if(cudaCalc)
+  {
+    cudaMallocManaged(&raycoor, sizeof(rayinit)*RAYS);
+  }else
+  {
+    raycoor = (rayinit*)malloc(sizeof(rayinit)*RAYS);
+  }
 
   //#pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays; i++)
@@ -91,12 +93,10 @@ void trackRays()
     int currZ = (absX)/dx;
     currZ += ((curr->xinit-currX*dx) > 0.5);
     curr->wpeinit = 0;
-    kz0[i] = 0;
     pow_x[i] = exp(-1*pow(pow(phase_x[i]/sigma,2.0),4.0/2.0));
     phase_x[i] += offset;
     //Beam one lies along the z axis, x axis is constant
   }
-  int finalts[nrays][nbeams];
   cout <<  scientific;
   beam = 0;
   //Loop to launch the rays for beam 1, parallelized using OpenMP
@@ -113,19 +113,22 @@ void trackRays()
     curr->zinit = zmin-(dt/courant_mult*c*0.5);
     curr->urayinit =  interp(phase_x, pow_x, curr->xinit, nrays)*uray_mult;
     raycoor[i-nrays].urayinit =  interp(phase_x, pow_x, raycoor[i-nrays].zinit, nrays)*uray_mult;
-    interpTerm[i] = interp(phase_x, pow_x, z0[i], nrays);
     //phase_x[i] +=offset;
   }
   //rayLaunch<<<1024,512>>>(rayinit* init, double* edepcu, double* force, double* crossx_cu, double* crossz_cu, int nrays);
 
   //Reset the intial conditions for beam 2
+  delete [] x0;
+  delete [] z0;
+  delete [] phase_x;
+  delete [] pow_x;
+
   if(cudaCalc)
   {
     LaunchCUDARays(raycoor);
     return;
   }
   auto startL = std::chrono::high_resolution_clock::now();
-  
 
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays*nbeams;i++)
@@ -159,8 +162,9 @@ void trackRays()
   fillMarked(markedTemp);
   auto stopI = std::chrono::high_resolution_clock::now();
 
-  //std::cout << threads << " " << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopL-startL).count() << " " << chrono::duration_cast<chrono::milliseconds>(stopI-startI).count() << std::endl;
+  //*output << "CPUTrace " << threads << " " << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopL-startL).count() << " " << chrono::duration_cast<chrono::milliseconds>(stopI-startI).count() << std::endl;
   delete [] markedTemp;
+  cudaFree(raycoor);
 }
 
 

@@ -21,6 +21,7 @@
   extern std::vector<size_t> sizes;
   
 
+  
 
 
   //define a struct to hold TrackRay Constants->passing once by reference should suffice

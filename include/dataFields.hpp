@@ -168,6 +168,7 @@
     extern double* dedendx; //nx nz
     extern double* dedendz; //nx nz
     extern double* wMult;
+    extern std::ofstream* output;
 
     extern int* raypath; //nx nz store single ray path
     extern double* x; //nx

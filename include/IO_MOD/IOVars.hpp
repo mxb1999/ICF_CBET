@@ -12,7 +12,7 @@
 
   double maxIncr, converge;
   int threads,maxIter;
-
+std::ofstream* output;
   int* raypath;
   int nbeams, nrays, nt, numstored, rays_per_zone, ncrossings;
   //arrays used only for plotting

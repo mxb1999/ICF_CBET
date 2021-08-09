@@ -66,7 +66,7 @@ void initArrays()
   if(cudaCalc)
   {
     cudaMallocManaged(&i_b_new, sizeof(double)*CROSS);
-    cudaMallocManaged(&i_b, sizeof(double)*CROSS);
+    cudaError_t err = cudaMallocManaged(&i_b, sizeof(double)*CROSS);
     cudaMallocManaged(&machnum, sizeof(double)*GRID);
     cudaMallocManaged(&u_flow, sizeof(double)*GRID);
     cudaMallocManaged(&dkx, sizeof(double)*CROSS);
@@ -82,9 +82,10 @@ void initArrays()
     dkz = new double[CROSS];
     dkmag = new double[CROSS];
   }
-  double phase_x[nrays];//phase of ray
-  double pow_x[nrays];//power delivery of ray
-  double initIntensities[nrays];
+  
+  double* phase_x = new double[nrays];//phase of ray
+  double* pow_x = new double[nrays];//power delivery of ray
+  double*  initIntensities = new double[nrays];
   span(phase_x,beam_min_z, beam_max_z, nrays);
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays;i++)
@@ -92,17 +93,41 @@ void initArrays()
     pow_x[i] = exp(-1*pow(pow(phase_x[i]/sigma,2.0),4.0/2.0));
   }
   double dbRay = (beam_max_z-beam_min_z)/nrays; 
-  //#pragma omp parallel for num_threads(threads)
+  #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nrays;i++)
   {
     //printf("%e\n",interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays));
     initIntensities[i] = interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays)*intensity;
   }
   //Initialize CBET array values
+  
+  for(int m = 0; m < nbeams; m++)
+  {
+
+    //#pragma omp parallel for num_threads(threads)
+    for(int j = 0; j < nrays; j++)
+    {
+        double thisinit = initIntensities[j];
+        vec3DW(i_b, m,j,0,nrays,ncrossings,thisinit);
+        vec3DW(i_b_new, m,j,0,nrays,ncrossings,thisinit);
+        for(int q = 0; q < ncrossings-1; q++)
+        {
+
+            vec3DW(i_b, m,j,q+1,nrays,ncrossings,thisinit);
+            double delX = vec3D(crossesx,m,j,q+1,nrays,ncrossings)-vec3D(crossesx,m,j,q,nrays,ncrossings);
+            double delZ = vec3D(crossesz,m,j,q+1,nrays,ncrossings)-vec3D(crossesz,m,j,q,nrays,ncrossings);
+            double mag = sqrt(pow(delX,2.0)+pow(delZ,2.0));
+            vec3DW(dkx, m,j,q, nrays, ncrossings, delX);
+            vec3DW(dkz, m,j,q, nrays, ncrossings, delZ);
+            vec3DW(dkmag, m,j,q, nrays, ncrossings, mag);
+
+        }
+    }
+  }
   double area = dx*dz;
-  double* spanVal = new double[nx];
+  double* spanVal = new double[nz];
   span(spanVal,1,1.8,nz);
-  #pragma omp parallel for num_threads(threads)
+  //#pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nz; i++)
   {
     double val = -1*spanVal[i];
@@ -113,27 +138,8 @@ void initArrays()
       vec2DW(u_flow,i,j,nz, val*cs); //
     }
   }
-  for(int m = 0; m < nbeams; m++)
-  {
-
-    #pragma omp parallel for num_threads(threads)
-    for(int j = 0; j < nrays; j++)
-    {
-        double thisinit = initIntensities[j];
-        vec3DW(i_b, m,j,0,nrays,ncrossings,thisinit);
-        vec3DW(i_b_new, m,j,0,nrays,ncrossings,thisinit);
-        for(int q = 0; q < ncrossings-1; q++)
-        {
-            vec3DW(i_b, m,j,q+1,nrays,ncrossings,thisinit);
-            double delX = vec3D(crossesx,m,j,q+1,nrays,ncrossings)-vec3D(crossesx,m,j,q,nrays,ncrossings);
-            double delZ = vec3D(crossesz,m,j,q+1,nrays,ncrossings)-vec3D(crossesz,m,j,q,nrays,ncrossings);
-            double mag = sqrt(pow(delX,2.0)+pow(delZ,2.0));
-            vec3DW(dkx, m,j,q, nrays, ncrossings, delX);
-            vec3DW(dkz, m,j,q, nrays, ncrossings, delZ);
-            vec3DW(dkmag, m,j,q, nrays, ncrossings, mag);
-        }
-    }
-  }
-
+  delete [] pow_x;
+  delete [] phase_x;
+  delete [] initIntensities;
 }
 

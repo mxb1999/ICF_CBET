@@ -114,16 +114,13 @@ void cbetGain(double* wMultOld, double* conv)
             double efield2 = sqrt(8.*pi*1.0e7*vec3D(i_b, q, r, rayCross, nrays, ncrossings)/c);   
             double P = (pow(iaw,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw),2)*pow(eta,2));  
             double gain1 = constant1*pow(efield2,2)*(ne/ncrit)*(1/iaw)*P/icnt;               //L^-1 from Russ's paper
-            double oldEnergy2 = multAcc;
-            double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
+            double newEnergy1Mult = exp(multAcc*mag1*gain1/sqrt(epsilon));
             vec3DM(wMult, i, j, m, nrays, ncrossings,newEnergy1Mult);
           }
             double curr = vec3D(wMult, i, j, m, nrays, ncrossings);
             //printf("curr %e\n",curr);
             double prevVal = vec3D(wMultOld, i, j, m, nrays, ncrossings);
             conv[thisThread] = fmax(conv[thisThread], abs(curr-prevVal)/prevVal);
-            i0 *= curr;
-            vec3DW(i_b_new, i, j, m, nrays, ncrossings, i0);
         }
       }
     }
@@ -134,7 +131,6 @@ void cbetUpdate(double* wMultOld)
   #pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nbeams*nrays*ncrossings;i++)
   {
-    i_b[i] = i_b_new[i];
     wMultOld[i] = wMult[i];
   }
 }
@@ -195,8 +191,12 @@ void cbet()
       break;
     }
   }
+
   cbetUpdateFinal();
+  delete [] conv;
+    delete [] wMult;
+  delete [] wMultOld;
   auto stopKernel = std::chrono::high_resolution_clock::now();
-  std::cout << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
+  //*output << "CPUCBET " << threads <<" "<< nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
 
 }

@@ -184,12 +184,12 @@ cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, doubl
     double oldEnergy2 = multAcc;
     double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
     limmult*=newEnergy1Mult;
-    printf("multAcc %e\n", multAcc);
+    //printf("multAcc %e\n", multAcc);
     }
     double curr = limmult;
     if(beam == 1  && limmult > 1.5)
     {
-      printf("Limmult %d %d %e\n",raynum, m, limmult);
+      //printf("Limmult %d %d %e\n",raynum, m, limmult);
     }       
     vec3DW_cu(wMult, beam,raynum,m, nrays_cu, ncrossings_cu, limmult);
 
@@ -214,13 +214,13 @@ updateIterVals(double* wMultOld, double* wMult, double* i_b, double* i_b_new, in
       return;
   }*/
   int raynum = (index) % nrays;
-  double i0 = vec3D_cu(i_b, beam, raynum, 0, nrays, ncrossings);
+  //double i0 = vec3D_cu(i_b, beam, raynum, 0, nrays, ncrossings);
   for(int cross = 1; cross < ncrossings;cross++)
   {
     double newMult = vec3D_cu(wMult, beam, raynum, cross, nrays, ncrossings);
     vec3DW_cu(wMultOld, beam, raynum, cross, nrays,ncrossings, newMult);
-    vec3DW_cu(i_b, beam, raynum, cross, nrays,ncrossings, newMult*i0);
-    i0 = vec3D_cu(i_b, beam, raynum, cross, nrays,ncrossings);
+    //vec3DW_cu(i_b, beam, raynum, cross, nrays,ncrossings, newMult*i0);
+    //i0 = vec3D_cu(i_b, beam, raynum, cross, nrays,ncrossings);
   }
 
 }
@@ -316,8 +316,6 @@ void freeIntermediateTraceArrs()
 void launchCBETKernel()
 {
   
-    initArrays();
-    
     if(optimize)
     {
       cbetOptimize();
@@ -346,12 +344,10 @@ void launchCBETKernel()
     cudaMallocManaged(&maxDelta, sizeof(double)*CROSS);//store the cumulative product of the normalized ray energies
     for(int i = 0; i < maxIter; i++)
     {
+      printf("Test1\n");
       cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
       cudaDeviceSynchronize();
-      fflush(stdout);
-
-      printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
-      fflush(stdout);
+      printf("Test2\n");
       updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);
       cudaDeviceSynchronize();
       //updateIterValsSerial(wMultOld);
@@ -362,18 +358,21 @@ void launchCBETKernel()
         max = fmax(maxDelta[j], max);
         maxDelta[j] = 0.0;
       }
-      printf("%e\n", max);
+      printf("Max %e\n", max);
       if(max <= converge)
       {
         break;
       }
-      printf("Test %e\n", vec3D(wMult, 1, 250, 45,nrays,ncrossings));
-      fflush(stdout);
 
     }
+  
     cbetUpdate<<<B, T>>>(nbeams, nrays, ncrossings, wMult, i_b_new,boxes);
     cudaDeviceSynchronize();
     auto stopKernel = std::chrono::high_resolution_clock::now();    
-    std::cout << nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
+    cudaFree(wMult);
+    cudaFree(wMultOld);
+    cudaFree(maxDelta);
+    //*output << "CUCBET "<< nrays << " " << chrono::duration_cast<chrono::milliseconds>(stopKernel-startKernel).count() << std::endl;
+  
 }
 

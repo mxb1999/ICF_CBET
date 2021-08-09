@@ -1,10 +1,13 @@
 #include "implSim.hpp"
 #include <Python.h>
+#include <fstream>
 using namespace std;
 
 void benchmark()
 {
-  int trials = 10;
+  output = new std::ofstream();
+  output->open("output.txt", std::ofstream::out);
+  int trials = 1;
   /*calcCBET = 0;
   for(int t = 0; t < trials;t++)
   {
@@ -25,20 +28,47 @@ void benchmark()
   }*/
   optimize = 0;
   cudaCalc = 1;
-  
-  for(int i = 2; i < 100; i+=2)
+  int numpoints = 14;
+  int lim = pow(2,numpoints);
+  for(int i = 2; i <= lim; i*=2)
   {
-    rays_per_zone = i;
+    nrays = i;
     for(int t = 0; t < trials;t++)
     {
-      uray_mult = intensity*(courant_mult)*pow(double(rays_per_zone),-1.0); //multiplier which determines intensity deposited in a given zone
-      nrays= int(rays_per_zone*(beam_max_z-beam_min_z)/dz)+0;//number of rays per beam
       launchRays();
       cbet();
       freeTraceArrs();
       freeCBETArrs();
     }
   }
+  cudaCalc = 0;
+  threads = 1;
+  for(int i = 2; i <= lim; i*=2)
+  {
+    nrays = i;
+    for(int t = 0; t < trials;t++)
+    {
+      launchRays();
+      cbet();
+      freeTraceArrs();
+      freeCBETArrs();
+    }
+  }
+  cudaCalc = 0;
+  threads = 28;
+  for(int i = 2; i <= lim; i*=2)
+  {
+    nrays = i;
+    for(int t = 0; t < trials;t++)
+    {
+      launchRays();
+      cbet();
+      freeTraceArrs();
+      freeCBETArrs();
+    }
+  }
+  
+  output->close();
 }
 //main function called in program
 int main(int argc, char const *argv[]) {

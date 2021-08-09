@@ -527,7 +527,7 @@ void LaunchCUDARays(rayinit* rays)
   fillMarked<<<B, 256>>>(present, marked, markedTemp, nrays, numstored, nbeams, nx, nz, 1,1);
   cudaDeviceSynchronize();
   auto endmark = std::chrono::high_resolution_clock::now();
-  //std::cout << nrays << " " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() <<" " << chrono::duration_cast<chrono::milliseconds>(endmark-startmark).count() << std::endl;
+  //*output << "CUTrace "<<nrays << " " << chrono::duration_cast<chrono::milliseconds>(endlaunch-startlaunch).count() <<" " << chrono::duration_cast<chrono::milliseconds>(endmark-startmark).count() << std::endl;
   cudaError_t err = cudaFree(markedTemp);
   if(err)
   {

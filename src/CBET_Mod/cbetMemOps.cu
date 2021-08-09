@@ -1,5 +1,6 @@
 #include "CBET_Interface.hpp"
 #include "parallelConfig.hpp"
+#include "cuda_help.hpp"
 
 void cbetOptimize()
 {
@@ -31,15 +32,16 @@ void cbetOptimize()
 
 void freeCBETArrs()
 {
+  
   if(cudaCalc)
   {
-    cudaFree(i_b_new);
-    cudaFree(i_b);
-    cudaFree(machnum);
-    cudaFree(u_flow);
-    cudaFree(dkx);
-    cudaFree(dkz);
-    cudaFree(dkmag);
+    cudaError_t err = cudaFree(i_b_new);
+    err = cudaFree(i_b);
+    err = cudaFree(machnum);
+    err = cudaFree(u_flow);
+    err = cudaFree(dkx);
+    err = cudaFree(dkz);
+    err = cudaFree(dkmag);
   }else
   {
     delete [] i_b_new;
@@ -50,4 +52,5 @@ void freeCBETArrs()
     delete [] dkz;
     delete [] dkmag;
   }
+
 }
