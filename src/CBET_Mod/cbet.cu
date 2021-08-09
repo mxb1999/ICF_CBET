@@ -219,8 +219,8 @@ updateIterVals(double* wMultOld, double* wMult, double* i_b, double* i_b_new, in
   {
     double newMult = vec3D_cu(wMult, beam, raynum, cross, nrays, ncrossings);
     vec3DW_cu(wMultOld, beam, raynum, cross, nrays,ncrossings, newMult);
-    //vec3DW_cu(i_b, beam, raynum, cross, nrays,ncrossings, newMult*i0);
-    //i0 = vec3D_cu(i_b, beam, raynum, cross, nrays,ncrossings);
+    vec3DW_cu(i_b, beam, raynum, cross, nrays,ncrossings, newMult*i0);
+    i0 = vec3D_cu(i_b, beam, raynum, cross, nrays,ncrossings);
   }
 
 }
