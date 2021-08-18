@@ -1,10 +1,13 @@
-Bin/RayLaunch.o: src/RayLaunch.cpp include/implSim.hpp \
- include/customMath.hpp include/simConst.hpp include/customMath.hpp
+Bin/RayLaunch.o: src/RayLaunch.cpp include/Trace_interface.hpp \
+ include/dataFields.hpp include/parallelConfig.hpp include/customMath.hpp \
+ include/parallelConfig.hpp
 
-include/implSim.hpp:
+include/Trace_interface.hpp:
+
+include/dataFields.hpp:
+
+include/parallelConfig.hpp:
 
 include/customMath.hpp:
 
-include/simConst.hpp:
-
-include/customMath.hpp:
+include/parallelConfig.hpp:

@@ -1,10 +1,13 @@
-Bin/cbet.o: src/cbet.cpp include/implSim.hpp include/customMath.hpp \
- include/simConst.hpp include/customMath.hpp
+Bin/cbet.o: src/cbet.cpp include/CBET_Interface.hpp \
+ include/dataFields.hpp include/parallelConfig.hpp include/customMath.hpp \
+ include/cuda_help.hpp
 
-include/implSim.hpp:
+include/CBET_Interface.hpp:
+
+include/dataFields.hpp:
+
+include/parallelConfig.hpp:
 
 include/customMath.hpp:
 
-include/simConst.hpp:
-
-include/customMath.hpp:
+include/cuda_help.hpp:

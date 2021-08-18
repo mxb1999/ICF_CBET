@@ -1,10 +1,10 @@
-Bin/Launch_Ray_XZ.o: src/Launch_Ray_XZ.cpp include/implSim.hpp \
- include/customMath.hpp include/simConst.hpp include/customMath.hpp
+Bin/Launch_Ray_XZ.o: src/Launch_Ray_XZ.cpp include/Trace_interface.hpp \
+ include/dataFields.hpp include/parallelConfig.hpp include/customMath.hpp
 
-include/implSim.hpp:
+include/Trace_interface.hpp:
 
-include/customMath.hpp:
+include/dataFields.hpp:
 
-include/simConst.hpp:
+include/parallelConfig.hpp:
 
 include/customMath.hpp:

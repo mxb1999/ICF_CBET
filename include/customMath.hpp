@@ -10,3 +10,4 @@ double* interpArr(double* xArr, double* yArr, double* target, int xsize, int siz
 bool areEqual(double a, double b);//determines if the two doubles are equal, not used but can be more convenient at times
 int compareDub(double a, double b);//Compares doubles
 void span(double* target, double start, double stop, int num);//Fills target with evenly spaced doubles running from start to stop
+double median(double* arr, int N);
