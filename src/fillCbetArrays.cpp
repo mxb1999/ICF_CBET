@@ -78,9 +78,9 @@ void initArrays()
     i_b = new double[CROSS]{0.0};
     machnum = new double[GRID]{0.0};
     u_flow = new double[GRID]{0.0};
-    dkx = new double[CROSS]{0.0};
-    dkz = new double[CROSS]{0.0};
-    dkmag = new double[CROSS]{0.0};
+    //dkx = new double[CROSS]{0.0};
+    //dkz = new double[CROSS]{0.0};
+    //dkmag = new double[CROSS]{0.0};
   }
   
   double* phase_x = new double[nrays];//phase of ray
@@ -116,12 +116,12 @@ void initArrays()
         {
 
             vec3DW(i_b, m,j,q+1,nrays,ncrossings,thisinit);
-            double delX = vec3D(crossesx,m,j,q+1,nrays,ncrossings)-vec3D(crossesx,m,j,q,nrays,ncrossings);
-            double delZ = vec3D(crossesz,m,j,q+1,nrays,ncrossings)-vec3D(crossesz,m,j,q,nrays,ncrossings);
-            double mag = sqrt(pow(delX, 2.0)+pow(delZ, 2.0));
-            vec3DW(dkx, m,j,q, nrays, ncrossings, delX);
-            vec3DW(dkz, m,j,q, nrays, ncrossings, delZ);
-            vec3DW(dkmag, m,j,q, nrays, ncrossings, mag);
+            //double delX = vec3D(crossesx,m,j,q+1,nrays,ncrossings)-vec3D(crossesx,m,j,q,nrays,ncrossings);
+            //double delZ = vec3D(crossesz,m,j,q+1,nrays,ncrossings)-vec3D(crossesz,m,j,q,nrays,ncrossings);
+            //double mag = sqrt(pow(delX, 2.0)+pow(delZ, 2.0));
+           // vec3DW(dkx, m,j,q, nrays, ncrossings, delX);
+           // vec3DW(dkz, m,j,q, nrays, ncrossings, delZ);
+            //vec3DW(dkmag, m,j,q, nrays, ncrossings, mag);
 
         }
     }

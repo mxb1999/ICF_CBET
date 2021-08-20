@@ -11,20 +11,25 @@ void fillMarked()//marked temp indexed by rays
     {
       for(int i = 0; i < ncrossings;i++)
       {
-        int cx = vec4D(boxes, beam,raynum,i,0, nrays, ncrossings, 2);
-        int cz = vec4D(boxes, beam,raynum,i,1, nrays, ncrossings, 2);
-        if(!cx || !cz)
+        int id = vec3D(boxes, beam,raynum,i, nrays, ncrossings);
+        int cx, cz;
+        if(!id)
         {
           break;
         }
-        cx--;
-        cz--;
+        cx = (id - 1) % nx;
+        cz = (id - cx - 1)/nx;
         int val = vec3D(present, beam, cx,cz, nx,nz);
+        printf("(%d, %d :: %d %d) ", cx, cz, val, raynum);
         vec4DW(marked, beam,cx,cz, val, nx,nz, numstored, raynum+1);
         vec3DI(present, beam, cx,cz, nx,nz,1);
       }
+          printf("\n");
+
     }
+    printf("\n");
   }
+  getchar();
 }
 
 
@@ -174,5 +179,6 @@ void trackRays()
 
 void launchRays()
 {
-  trackRays();
+  //trackRays();
+  fillMarked();
 }

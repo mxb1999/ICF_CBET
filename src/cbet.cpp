@@ -15,7 +15,10 @@ double getInteractionMultiplier(int beam, int ray, int crossing, int ix, int iz,
   double neOverNc = eden[ix*nz+iz]/ncrit;
   double neTerm = 1/sqrt(1-neOverNc);
   double epsilonEff = 1/(neTerm*neTerm);
+   printf("{%d %d %f}, ", ray + 1 + 16*(beam == 1), crossing, neOverNc);
   double interactionMult = 1/(areaAvg*neTerm)*1/sqrt(epsilonEff);
+
+
   return interactionMult;
 }
 double getConstant()
@@ -28,28 +31,13 @@ double getConstant()
 int* findInteractions(int ix, int iz, int otherbeam, int* size)
 {
   int i, j;
-  int size_local = 0;
-  for(i = 0, j = numstored-1; i < numstored; i++)
-  {
-    int m1 = vec4D(marked, otherbeam, ix, iz, i, nx, nz, numstored);
-    int m2 = vec4D(marked, otherbeam, ix, iz, j-i, nx, nz, numstored);
-    if(!m1)
-    {
-      size_local = i;
-      break;
-    }
-    if(m2)
-    {
-      size_local = j-i+1;
-      break;
-    }
-  }
+  int size_local = vec3D(present, otherbeam, ix, iz, nx, nz);
   int* result = new int[size_local];
   *size = size_local;
-  for(i = 0; i < size_local; i++)
+  for(int q = 0; q < size_local; q++)
   {
-    int ray = vec4D(marked, otherbeam, ix, iz, i, nx, nz, numstored) - 1;
-    result[i] = ray;
+    int ray = vec4D(marked, otherbeam, ix, iz, q, nx, nz, numstored) - 1;
+    result[q] = ray;
   }
   return result;
 }
@@ -57,14 +45,23 @@ int getCrossing(int beam, int ray, int ix, int iz)
 {
   int xcurr, zcurr;
   int rayCross = 0;
-  xcurr = vec4D(boxes, beam, ray, rayCross, 0, nrays, ncrossings, 2) - 1;
-  zcurr = vec4D(boxes, beam, ray, rayCross, 1, nrays, ncrossings, 2) - 1;
+  int id = vec3D(boxes, beam, ray, rayCross, nrays, ncrossings);
+  xcurr = (id - 1) % nx;
+  zcurr = (id - xcurr - 1)/nx;
+  //printf("%d %d :: %d %d\n", ix, iz, xcurr, zcurr);
+  //printf("\n%d:: %d %d\n", ray, ix, iz);
   while (xcurr != ix || zcurr != iz)
   {
+    //printf("%d %d, ", xcurr, zcurr);
+    //fflush(stdout);
+    //getchar();
     rayCross += 1;
-    xcurr = vec4D(boxes, beam, ray, rayCross, 0, nrays, ncrossings, 2) - 1;
-    zcurr = vec4D(boxes, beam, ray, rayCross, 1, nrays, ncrossings, 2) - 1;
+    int id = vec3D(boxes, beam, ray, rayCross, nrays, ncrossings);
+    xcurr = (id - 1) % nx;
+    zcurr = (id - xcurr - 1)/nx;
+    //printf("\t%d %d :: %d %d\n", ix, iz, xcurr, zcurr);
   };
+
   return rayCross;
 }
 double getEta(int beam1, int ray1, int cross1, int beam2, int ray2, int cross2, int ix, int iz)
@@ -72,11 +69,11 @@ double getEta(int beam1, int ray1, int cross1, int beam2, int ray2, int cross2, 
   double mag1, mag2;
   mag1 = vec3D(dkmag, beam1, ray1, cross1, nrays, ncrossings);
   mag2 = vec3D(dkmag, beam2, ray2, cross2, nrays, ncrossings);
-  double kx1 = vec3D(dkx, beam1, ray1, cross1, nrays, ncrossings)/mag1;
-  double kz1 = vec3D(dkz, beam1, ray1, cross1, nrays, ncrossings)/mag1;
+  double kx1 = vec3D(dkx, beam1, ray1, cross1, nrays, ncrossings);///mag1;
+  double kz1 = vec3D(dkz, beam1, ray1, cross1, nrays, ncrossings);///mag1;
 
-  double kx2 = vec3D(dkx, beam2, ray2, cross2, nrays, ncrossings)/mag2;
-  double kz2 = vec3D(dkz, beam2, ray2, cross2, nrays, ncrossings)/mag2;
+  double kx2 = vec3D(dkx, beam2, ray2, cross2, nrays, ncrossings);///mag2;
+  double kz2 = vec3D(dkz, beam2, ray2, cross2, nrays, ncrossings);///mag2;
 
   double machx = machnum[ix*nz+iz];
   double ne = eden[ix*nz + iz];
@@ -88,6 +85,7 @@ double getEta(int beam1, int ray1, int cross1, int beam2, int ray2, int cross2, 
   double etaNumerator = omega1-omega2 - (iawVector[0]*machx + iawVector[1]*machz)*cs;
   double etaDenominator = k_iaw*cs;
   double eta = etaNumerator/etaDenominator;
+  int ray_o = (beam2 == 1) ? ray2 + 16 + 1 : ray2+1;
   return eta;
 };
 double getCouplingMultiplier(int beam, int ray, int cross, int ix, int iz, double cbetconst, double eta, double interactionMult)
@@ -101,6 +99,10 @@ double getCouplingMultiplier(int beam, int ray, int cross, int ix, int iz, doubl
   double param3 = (pow(eta*eta - 1, 2) + iaw*iaw*eta*eta);
   double param4 = interactionMult;
   double couplingMult = param1*param2/param3*param4;
+
+  //printf("%f\n",couplingMult);
+    //getchar();
+
   return couplingMult;
 }
 #define ABSLIM 1000
@@ -115,6 +117,7 @@ double limitMultiplier(double mult, int beam, int ray, int crossing, double medi
   mult = 1 - multPerStep*stepRatio;
   mult = (mult > ABSLIM) ? ABSLIM : mult;
   mult = (mult < 1/ABSLIM) ? 1/ABSLIM : mult;
+
   return mult;
 };
 double limitEnergy(double multiplier_acc, double i0, double currMax, int beam, int ray, int crossing, double* maxChange)
@@ -122,6 +125,7 @@ double limitEnergy(double multiplier_acc, double i0, double currMax, int beam, i
   double i_prev = vec3D(i_b, beam, ray, crossing, nrays, ncrossings);
   double i_curr = i0*multiplier_acc;
   double fractionalChange = abs(i_curr-i_prev)/i_prev;
+  //printf("(%e) ", i0);
   *maxChange = fmax(fractionalChange, *maxChange);
   if(fractionalChange > currMax)
   {
@@ -138,23 +142,29 @@ void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS
   {
     for(j = 0; j < nrays; j++)
     {
+      int index = (i != 1) ? j + 1 : j + 17;
+      printf("%d: ", index);
       for(k = 0; k < ncrossings; k++)
       {
         int ix, iz;
-        ix = vec4D(boxes, i, j, k, 0, nrays, ncrossings, 2);
-        iz = vec4D(boxes, i, j, k, 1, nrays, ncrossings, 2);
-        if(!ix || !iz)
+        int id = vec3D(boxes, i, j, k, nrays, ncrossings);
+        //printf("%d", id);
+        ix = (id - 1) % nx;
+        iz = (id - ix - 1)/nx;
+        //printf(":: %d %d %d| ", ix, iz, (iz)*nz + ix+1);
+       // fflush(stdout);
+        if(!id)
         {
           break;
         }
-        ix--;
-        iz--;
         int islast = 0;
         if(k != ncrossings - 1)
         {
           int ixnext, iznext;
-          ixnext = vec4D(boxes, i, j, k+1, 0, nrays, ncrossings, 2);
-          iznext = vec4D(boxes, i, j, k+1, 1, nrays, ncrossings, 2);
+          int idnext = vec3D(boxes, i, j, k+1, nrays, ncrossings);
+
+          ixnext = (idnext - 1) % nx;
+          iznext = (idnext - ixnext - 1)/nx;
           if(!ixnext || !iznext)
           {
             islast = 1;
@@ -173,21 +183,32 @@ void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS
           for(p = 0; p < numInteractions; p++)
           {
             int ray_o = interactions[p];
+
             int raycross = getCrossing(q, ray_o, ix, iz);
             double cbetConst = getConstant();
             double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);
-            double interactionMultiplier = getInteractionMultiplier(i, j, k, ix, iz, islast);
-            double couplingMult = getCouplingMultiplier(i, j, k, ix, iz, cbetConst, eta, interactionMultiplier);
+            double interactionMultiplier = getInteractionMultiplier(q, ray_o, raycross, ix, iz, islast);
+            double couplingMult = getCouplingMultiplier(q, ray_o, k, ix, iz, cbetConst, eta, interactionMultiplier);
             double otherIntensity = vec3D(i_b, q, ray_o, raycross, nrays, ncrossings);
+            int ray_oid = (q == 1) ? ray_o + 16 + 1 : ray_o+1;
+
+            printf("{%d %f}, ", ray_oid, interactionMultiplier );
             cbetSum += couplingMult*otherIntensity/1e14;
+            //printf("%d, ", ray_o, eta);
+            int o_index = (q != 1) ? ray_o + 1 : 32 - ray_o;
+            //printf("{%d, %f} ",o_index, eta);
+
           }
         }
         double mult = exp(-1*cbetSum);
         mult = limitMultiplier(mult, i, j, k, medianDS, iteration);
         vec3DW(wMult, i, j, k, nrays, ncrossings, mult);
       }
+      printf("\n\n");
     }
+    printf("\n");
   }
+
 }
 
 
@@ -197,17 +218,18 @@ void updateIntensities(int iteration, double* convMax, double currMax)
   {
     for(int j = 0; j < nrays; j++)
     {
-      double i0 = vec3D(i_b, i, j, 0, nrays, nbeams);
+      double i0 = vec3D(i_b, i, j, 0, nrays, ncrossings);
       double multAcc = 1.0;
       for(int k = 1; k < ncrossings; k++)
       {
-        double mult = vec3D(wMult, i, j, k, nrays, nbeams);
+        double mult = vec3D(wMult, i, j, k, nrays, ncrossings);
         multAcc *= mult;
-        double new_intensity = limitEnergy(mult, i0, currMax, i, j, k, convMax);
+        double new_intensity = limitEnergy(multAcc, i0, currMax, i, j, k, convMax);
         vec3DW(i_b, i, j, k, nrays, ncrossings, new_intensity);
       }
     }
   }
+  getchar();
 }
 void cbetGain(double* wMultOld, double* conv, double* logger, double medianDS, int iteration)
 {
@@ -290,9 +312,9 @@ void cbetGain(double* wMultOld, double* conv, double* logger, double medianDS, i
             double multAcc = vec3D(wMultOld, q,r,0, nrays, ncrossings);
             for(int p = 0; p < ncrossings-1; p++)
             {
-              int ox = vec4D(boxes, q,r,p, 0, nrays, ncrossings, 2);
-              int oz = vec4D(boxes, q,r,p, 1, nrays, ncrossings, 2);
-              if(!ox || !oz)
+              int ox = vec3D(boxes, q,r,p, nrays, ncrossings)/ nx;
+              int oz = vec3D(boxes, q,r,p, nrays, ncrossings)% nx;
+              if(!ox && !oz)
               {
                 break;
               }
@@ -365,6 +387,7 @@ void cbetGain(double* wMultOld, double* conv, double* logger, double medianDS, i
   }
   //getchar();
 }
+
 #define CBETCONVERGENCE 0.9990
 void cbetUpdate(double* wMultOld, double medianDS, int iteration, double currmax, double* conv)
 {
@@ -380,12 +403,13 @@ void cbetUpdate(double* wMultOld, double medianDS, int iteration, double currmax
       {
         double mult = vec3D(wMult, i,j,m, nrays, ncrossings);
         multAcc *= mult;
-        int ix = vec4D(boxes, i,j,m, 0, nrays, ncrossings, 2);
-        int iz = vec4D(boxes, i,j,m, 1, nrays, ncrossings, 2);
+        int ix = vec3D(boxes, i,j,m, nrays, ncrossings) / nx;
+        int iz = vec3D(boxes, i,j,m, nrays, ncrossings) % nx;
         if(!ix || !iz)
         {
           break;
         }
+        iz--;
         double iprev = vec3D(i_b, i,j,m, nrays, ncrossings);
         double icurr = i0*multAcc;
         double temp = icurr;
@@ -465,25 +489,25 @@ void cbet()
   wMult = new double[CROSS];//store the cumulative product of the normalized ray energies
   double* wMultOld = new double[CROSS];
   double* conv = new double[threads];
-  double updateconv = 0.0;
   for(int i = 0; i < CROSS; i++)
   {
     wMultOld[i] = 1.0;
     wMult[i] = 1.0;
   }
   double medianDS = median(dkmag, CROSS);
-
   double currmax = maxIncr;
   auto startKernel = std::chrono::high_resolution_clock::now();
-  for(int i = 1; i <= maxIter; i++)
+  for(int i = 1; i <= 100; i++)
   {
+    double updateconv = 0.0;
+
     for(int j = 0; j < threads; j++)
     {
       conv[j] = 0;
     }
-    getCBETGain(wMultOld, conv, spatialLog, medianDS, i+1);
+    getCBETGain(wMultOld, conv, spatialLog, medianDS, i);
     updateIntensities(i+1, &updateconv, currmax);
-
+    //getchar();
     double convMax = 0.0;
     for(int i = 0; i < threads; i++)
     {
@@ -505,20 +529,22 @@ void cbet()
         for(int k = 0; k < ncrossings; k++)
         {
           int ix, iz;
-          ix = vec4D(boxes, i, j, k, 0, nrays, ncrossings, 2);
-          iz = vec4D(boxes, i, j, k, 1, nrays, ncrossings, 2);
-          if(!ix || !iz)
+          ix = vec3D(boxes, i, j, k, nrays, ncrossings) / nz;
+          iz = vec3D(boxes, i, j, k, nrays, ncrossings) % nz;
+          iz--;
+          iz += nz*(iz == -1);
+          if(!ix && !iz)
           {
             break;
           }
-          //printf("%f ", vec3D(i_b, i, j, k, nrays, ncrossings)/1e14);
+          printf("%f ", vec3D(i_b, i, j, k, nrays, ncrossings)/1e14);
 
         }
-        //printf("\n");
+        printf("\n");
       }
-      //printf("\n");
+      printf("\n");
     }
-  ////printf("\n");
+  //printf("\n");
   for(int i = 0; i < nx; i++)
   {
     for(int j = 0; j < nz; j++)

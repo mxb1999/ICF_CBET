@@ -106,20 +106,26 @@ void sort(double* arr, int min, int max)
 //find the median index of an unsorted array
 double median(double* arr, int N)
 {
-  double copy[N];
-  memcpy(copy, arr, N*sizeof(double));
-  sort(copy, 0, N);
-  double* startAddr;
-  int i;
-  for(i = 0; i < N; i++)
+  int cnt = 0;
+  for(int i = 0; i < N; i++)
   {
-    if(copy[i] > 0)
+    if(arr[i] == arr[i])
     {
-      startAddr = copy + i;
-      break;
+      cnt++;
     }
   }
-  return startAddr[(N-i)/2];
+  double copy[cnt];
+  cnt = 0;
+  for(int i = 0; i < N; i++)
+  {
+    if(arr[i] == arr[i])
+    {
+      copy[cnt] = arr[i];
+      cnt++;
+    }
+  }
+  sort(copy, 0, cnt);
+  return copy[cnt/2];
 }
 /*
 int main(int argc, char** argv)

@@ -291,13 +291,12 @@ void updateH5()
   {
     for(int m = 0; m < ncrossings;m++)
     {
-      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
-      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
-      if(!boxx || !boxz)
+      int boxx = vec3D(boxes,i,j,m,nrays,ncrossings) % nz;
+      int boxz = vec3D(boxes,i,j,m,nrays,ncrossings) / nz;
+      if(!boxx && !boxz)
       {
         break;
       }
-      boxx--;
       boxz--;
       double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
       
@@ -311,13 +310,12 @@ void updateH5()
   {
     for(int m = 0; m < ncrossings;m++)
     {
-      int boxx = vec4D(boxes,i,j,m,0,nrays,ncrossings,2);
-      int boxz = vec4D(boxes,i,j,m,1,nrays,ncrossings,2);
-      if(!boxx || !boxz)
+      int boxx = vec3D(boxes,i,j,m,nrays,ncrossings) % nz;
+      int boxz = vec3D(boxes,i,j,m,nrays,ncrossings) / nz;
+      if(!boxx && !boxz)
       {
         break;
       }
-      boxx--;
       boxz--;
       double rayNRG = vec3D(i_b,i,j,m,nrays,ncrossings);
       WPlot2[boxx*nz+boxz] = vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);

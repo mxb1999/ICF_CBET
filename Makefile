@@ -30,7 +30,7 @@ CBETOBJ = $(patsubst %,$(ODIR)/%,$(_CBETOBJ))
 _DEVMANOBJ = gpuInterface.o #Device management Module source files
 DEVMANOBJ = $(patsubst %,$(ODIR)/%,$(_CBETOBJ))
 
-_TRACEOBJ = Launch_Ray_XZ.o RayLaunch.o fillTraceArrays.o#Ray tracking module source files
+_TRACEOBJ = fillTraceArrays.o Launch_Ray_XZ.o RayLaunch.o #Ray tracking module source files
 TRACEOBJ = $(patsubst %,$(ODIR)/%,$(_TRACEOBJ))
 
 #_FIELDOBJ =  #Core C++ files being used

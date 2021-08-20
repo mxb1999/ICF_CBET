@@ -70,8 +70,7 @@ void benchmark()
   
   output->close();
 }
-void convertTo
-void importFromH5(hid_t file, char* set_name, void* target, size_t unitSize, hid_t h5DataType)
+void importFromH5(hid_t file, char* set_name, void** target, size_t unitSize, hid_t h5DataType)
 {
   hid_t space, dset;
   herr_t status;
@@ -81,15 +80,26 @@ void importFromH5(hid_t file, char* set_name, void* target, size_t unitSize, hid
   hsize_t dims[ndims];
   H5Sget_simple_extent_dims(space, dims, NULL);
   hsize_t size = unitSize;
+  hid_t type = H5Dget_type(dset);
+  printf("Size of type %ld\n", H5Tget_size(type));
+  //size = H5Tget_size(type);
   for(int i = 0; i < ndims; i++)
   {
     size *= dims[i];
   }
   printf("%d\n", ndims);
-  printf("%d %d\n", dims[0], dims[1]);
-  target = malloc(size);
+  if(ndims == 3)
+  {
+    printf("%d %d %d\n", dims[0], dims[1], dims[2]);
+  }else if(ndims == 2)
+  {
+    printf("%d %d\n", dims[0], dims[1]);
+  }
+
+  *target = malloc(size);
+  printf("Hello %s\n", set_name);
   status = H5Dread (dset, h5DataType, H5S_ALL, H5S_ALL, H5P_DEFAULT,
-                target);
+                *target);
   H5Dclose(dset);
   H5Sclose(space);
 }
@@ -98,24 +108,45 @@ void importFromH5()
   //import ray info (areas, trajectories, and vectors) from MATLAB results
   free(boxes);
   free(areas);
-  ray_k = NULL;
-  char* path = "matlabcbet.hdf";
+  char* path = "matlabcbet.h5";
   hid_t file;
   herr_t status;
   file = H5Fopen(path, H5F_ACC_RDONLY, H5P_DEFAULT);
-  importFromH5(file, "trajectories", boxes, sizeof(int), H5T_NATIVE_INT);
-  importFromH5(file, "trajectories", areas, sizeof(double), H5T_NATIVE_DOUBLE);
-  importFromH5(file, "trajectories", ray_k, sizeof(double), H5T_NATIVE_DOUBLE);
+  double* tempArea;
+  importFromH5(file, "trajectories", (void**)&boxes, sizeof(int), H5T_NATIVE_INT);
+  importFromH5(file, "areaRatios", (void**)&tempArea, sizeof(double), H5T_NATIVE_DOUBLE);
+  importFromH5(file, "rayVectors", (void**)&ray_k, sizeof(double), H5T_NATIVE_DOUBLE);
+  importFromH5(file, "ds", (void**)&dkmag, sizeof(double), H5T_NATIVE_DOUBLE);
+  for(int i = 0; i < CROSS*3; i++)
+  {
+    //printf("%f\n", ray_k[i]);
+  }
+  dkx = new double[CROSS]{0.0};
+  dkz = new double[CROSS]{0.0};
+  areas = new double[CROSS]{0.0};
   for(int i = 0; i < nbeams; i++)
   {
     for(int j = 0; j < nrays; j++)
     {
-      for(int k = 0; k < nrays; k++)
+      for(int k = 0; k < ncrossings; k++)
       {
-        //if(vec3D(boxes, nbeams, nrays, 12))
+        double* value = vec4DP(ray_k, i, j, k, 0, nrays, 12, 3);
+        double area = vec3D(tempArea, i, j, k, nrays, 12);
+        double kx = value[0], kz = value[1];
+
+        int rayindex = j;
+        if(i == 1)
+        {
+          //rayindex == 32-j-1;
+        }
+        vec3DW(dkx, i, rayindex, k, nrays, ncrossings, kx);
+        vec3DW(dkz, i, rayindex, k, nrays, ncrossings, kz);
+        vec3DW(areas, i, rayindex, k, nrays, ncrossings, area);
       }
     }
   }
+  getchar();
+  free(tempArea);
   H5Fclose(file);
 }
 //main function called in program
@@ -180,9 +211,9 @@ int main(int argc, char const *argv[]) {
   }
   auto stop1 = chrono::high_resolution_clock::now();
   auto start2 = chrono::high_resolution_clock::now();
-  //launchRays();
-  fillTraceArrays();
   importFromH5();
+  fillTraceArrays();
+  launchRays();
   auto stop2 = chrono::high_resolution_clock::now();
   auto start3 = chrono::high_resolution_clock::now();
   optimize = 0;

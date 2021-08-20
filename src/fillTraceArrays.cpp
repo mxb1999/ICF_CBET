@@ -36,7 +36,7 @@ void fillTraceArrays()
         eden = new double[GRID];
         marked = new int[GRID*numstored*nbeams]{0};
         present = new int[GRID*nbeams]{0};
-        boxes = new int[CROSS*2]{0};
+       // boxes = new int[CROSS*2]{0};
         wpe = new double[GRID];
         crossesx = new double[CROSS]{0.0};
         crossesz = new double[CROSS]{0.0};
@@ -57,6 +57,14 @@ void fillTraceArrays()
             double temp = sqrt(vec2D(eden,i,j,nz)*1e6*pow(ec,2.0)/(me*e0));
             vec2DW(wpe,i,j,nz, temp);
         }
+    }
+    for(int i = 0; i < nx; i++)
+    {
+        for(int j = 0; j < nz; j++)
+        {
+            printf("(%e %d) ", eden[i*nz + j], i*nz+j);
+        }
+        printf("\n");
     }
     for (int i = 0; i < nx - 1; i++)
     {
