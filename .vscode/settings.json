@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "trace_rays.h": "c",
+        "cbet_sim.h": "c"
+    }
+}
