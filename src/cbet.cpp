@@ -3,7 +3,7 @@
 
 
 //Different approach, break into unit-testable subroutines (inefficient, but should work)
-
+#define NORM 1e15
 double getInteractionMultiplier(int beam, int ray, int crossing, int ix, int iz, int islast)
 {
   //calculate the interaction multiplier given the ray areas, the spatial position, the ray index, and the beam index
@@ -13,9 +13,8 @@ double getInteractionMultiplier(int beam, int ray, int crossing, int ix, int iz,
   area2 = vec3D(areas, beam, ray, crossing, nrays, ncrossings);
   double areaAvg = (area1+area2)/2;
   double neOverNc = eden[ix*nz+iz]/ncrit;
-  double neTerm = 1/sqrt(1-neOverNc);
-  double epsilonEff = 1/(neTerm*neTerm);
-   printf("{%d %d %f}, ", ray + 1 + 16*(beam == 1), crossing, neOverNc);
+  double neTerm = sqrt(1-neOverNc);
+  double epsilonEff = neTerm*neTerm;
   double interactionMult = 1/(areaAvg*neTerm)*1/sqrt(epsilonEff);
 
 
@@ -25,7 +24,7 @@ double getConstant()
 {
   double e = 4.8032e-10;
   me = 9.1094e-28;
-  double cbetconst = (8*pi*1e7*1e14/c)*(e*e/(4*me*c*kb*1.1605e7))*1e-4;
+  double cbetconst = (8*pi*1e7*NORM/c)*(e*e/(4*me*c*kb*1.1605e7))*1e-4;
   return cbetconst;
 }
 int* findInteractions(int ix, int iz, int otherbeam, int* size)
@@ -56,7 +55,9 @@ int getCrossing(int beam, int ray, int ix, int iz)
     //fflush(stdout);
     //getchar();
     rayCross += 1;
+
     int id = vec3D(boxes, beam, ray, rayCross, nrays, ncrossings);
+
     xcurr = (id - 1) % nx;
     zcurr = (id - xcurr - 1)/nx;
     //printf("\t%d %d :: %d %d\n", ix, iz, xcurr, zcurr);
@@ -64,28 +65,30 @@ int getCrossing(int beam, int ray, int ix, int iz)
 
   return rayCross;
 }
-double getEta(int beam1, int ray1, int cross1, int beam2, int ray2, int cross2, int ix, int iz)
+double getEta(int beam_seed, int ray_seed, int cross_seed, int beam_pump, int ray_pump, int cross_pump, int ix, int iz)
 {
   double mag1, mag2;
-  mag1 = vec3D(dkmag, beam1, ray1, cross1, nrays, ncrossings);
-  mag2 = vec3D(dkmag, beam2, ray2, cross2, nrays, ncrossings);
-  double kx1 = vec3D(dkx, beam1, ray1, cross1, nrays, ncrossings);///mag1;
-  double kz1 = vec3D(dkz, beam1, ray1, cross1, nrays, ncrossings);///mag1;
+  mag1 = vec3D(dkmag, beam_seed, ray_seed, cross_seed, nrays, ncrossings);
+  mag2 = vec3D(dkmag, beam_pump, ray_pump, cross_pump, nrays, ncrossings);
+  double kx_seed = vec3D(dkx, beam_seed, ray_seed, cross_seed, nrays, ncrossings);///mag1;
+  double kz_seed = vec3D(dkz, beam_seed, ray_seed, cross_seed, nrays, ncrossings);///mag1;
 
-  double kx2 = vec3D(dkx, beam2, ray2, cross2, nrays, ncrossings);///mag2;
-  double kz2 = vec3D(dkz, beam2, ray2, cross2, nrays, ncrossings);///mag2;
+  double kx_pump = vec3D(dkx, beam_pump, ray_pump, cross_pump, nrays, ncrossings);///mag2;
+  double kz_pump = vec3D(dkz, beam_pump, ray_pump, cross_pump, nrays, ncrossings);///mag2;
 
   double machx = machnum[ix*nz+iz];
   double ne = eden[ix*nz + iz];
   double neOverNc = ne/ncrit;
   double machz = 0.0;//TODO: Implement multidimensional plasma velocity;
   double omega1 = omega, omega2 = omega;
-  double iawVector[] = {(omega1*kx1 - omega2*kx2)*sqrt(1-neOverNc)/c,(omega1*kz1 - omega2*kz2)*sqrt(1-neOverNc)/c};
+  double iawVector[] = {(omega1*kx_seed - omega2*kx_pump)*sqrt(1-neOverNc)/c,(omega1*kz_seed - omega2*kz_pump)*sqrt(1-neOverNc)/c};
   double k_iaw = sqrt(iawVector[0]*iawVector[0] + iawVector[1]*iawVector[1]);
   double etaNumerator = omega1-omega2 - (iawVector[0]*machx + iawVector[1]*machz)*cs;
   double etaDenominator = k_iaw*cs;
   double eta = etaNumerator/etaDenominator;
-  int ray_o = (beam2 == 1) ? ray2 + 16 + 1 : ray2+1;
+  int ray_o = (beam_seed == 1) ? ray_seed + 16 + 1 : ray_seed+1;
+  //printf("%f %f\n", (kx_seed), sqrt(1-neOverNc));
+
   return eta;
 };
 double getCouplingMultiplier(int beam, int ray, int cross, int ix, int iz, double cbetconst, double eta, double interactionMult)
@@ -94,7 +97,7 @@ double getCouplingMultiplier(int beam, int ray, int cross, int ix, int iz, doubl
   double neOverNc = ne/ncrit;
   double TeK = Te_eV/1e3;
   double TiK = Ti_eV/1e3;
-  double param1 = cbetconst/(omega*TeK + 3 * TiK/Z);
+  double param1 = cbetconst/(omega*(TeK + 3 * TiK/Z));
   double param2 = neOverNc/iaw*iaw*iaw*eta;
   double param3 = (pow(eta*eta - 1, 2) + iaw*iaw*eta*eta);
   double param4 = interactionMult;
@@ -127,28 +130,31 @@ double limitEnergy(double multiplier_acc, double i0, double currMax, int beam, i
   double fractionalChange = abs(i_curr-i_prev)/i_prev;
   //printf("(%e) ", i0);
   *maxChange = fmax(fractionalChange, *maxChange);
+  double correction = 0.0;
   if(fractionalChange > currMax)
   {
     int sign = (i_curr - i_prev > 0) ? 1 : -1;
-    double correction = 1 + currMax*sign;
+    correction = 1 + currMax*sign;
     i_curr = i_prev*correction;
   }
+  //printf("{%d %e}, ", crossing, (i_curr-i0*multiplier_acc)/1e14);
   return i_curr;
 }
-void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS, int iteration)
+void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS, int iteration, int* raystore)
 {
   int i, j, k, q, p;
+
   for(i = 0; i < nbeams; i++)
   {
     for(j = 0; j < nrays; j++)
     {
       int index = (i != 1) ? j + 1 : j + 17;
-      printf("%d: ", index);
+      //printf("%d: ", index);
       for(k = 0; k < ncrossings; k++)
       {
         int ix, iz;
         int id = vec3D(boxes, i, j, k, nrays, ncrossings);
-        //printf("%d", id);
+
         ix = (id - 1) % nx;
         iz = (id - ix - 1)/nx;
         //printf(":: %d %d %d| ", ix, iz, (iz)*nz + ix+1);
@@ -169,9 +175,13 @@ void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS
           {
             islast = 1;
           }
+        }else
+        {
+          islast = 1;
         }
         double cbetSum = 0.0;
         double ds = vec3D(dkmag, i, j, k, nrays, ncrossings);
+
         for(q = 0; q < nbeams; q++)
         {
           if(q == i)
@@ -180,34 +190,48 @@ void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS
           }
           int numInteractions;
           int* interactions = findInteractions(ix, iz, q, &numInteractions);
-          for(p = 0; p < numInteractions; p++)
+          if(!numInteractions)
           {
-            int ray_o = interactions[p];
-
-            int raycross = getCrossing(q, ray_o, ix, iz);
-            double cbetConst = getConstant();
-            double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);
-            double interactionMultiplier = getInteractionMultiplier(q, ray_o, raycross, ix, iz, islast);
-            double couplingMult = getCouplingMultiplier(q, ray_o, k, ix, iz, cbetConst, eta, interactionMultiplier);
-            double otherIntensity = vec3D(i_b, q, ray_o, raycross, nrays, ncrossings);
-            int ray_oid = (q == 1) ? ray_o + 16 + 1 : ray_o+1;
-
-            printf("{%d %f}, ", ray_oid, interactionMultiplier );
-            cbetSum += couplingMult*otherIntensity/1e14;
-            //printf("%d, ", ray_o, eta);
-            int o_index = (q != 1) ? ray_o + 1 : 32 - ray_o;
-            //printf("{%d, %f} ",o_index, eta);
-
+            continue;
           }
+          //int ray_index = raystore[(i*nx + ix)*nz + iz];
+          int ray_o = raystore[(q*nx + ix)*nz + iz];
+          int ray_oid = (q == 1) ? ray_o + 16 + 1 : ray_o+1;
+          int raycross = getCrossing(q, ray_o, ix, iz);
+          double interactionMultiplier = getInteractionMultiplier(q, ray_o, raycross, ix, iz, islast);
+          double cbetConst = getConstant();
+          double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);
+          double couplingMult = getCouplingMultiplier(i, j, k, ix, iz, cbetConst, eta, interactionMultiplier);
+          couplingMult *= vec3D(dkmag, i,  j, k, nrays, ncrossings);
+
+          double otherIntensity = vec3D(i_b, q, ray_o, raycross, nrays, ncrossings);
+          printf("{%d %f}, ", ray_o, otherIntensity/1e14);
+          cbetSum += couplingMult*otherIntensity/NORM;
+          //printf("{%d, %f} ",o_index, eta);
+          //if(i == 1 && j == 15 && k == 5)
+          // {
+            //printf("{%d %f %f}, ", ray_o, otherIntensity/1e14, couplingMult, cbetSum);
+        //  }
+
         }
         double mult = exp(-1*cbetSum);
+        //if(j + 1 + 16*i == 32)
+        //  {
+        //    printf("{%d %f}, ", k + 1, mult);
+        //  }
+        //printf("{%d %e}, ", k+1, mult);
         mult = limitMultiplier(mult, i, j, k, medianDS, iteration);
         vec3DW(wMult, i, j, k, nrays, ncrossings, mult);
       }
+      //printf("\n\n");
+
+
       printf("\n\n");
     }
-    printf("\n");
+   // printf("\n");
+
   }
+    printf("\n");
 
 }
 
@@ -218,6 +242,7 @@ void updateIntensities(int iteration, double* convMax, double currMax)
   {
     for(int j = 0; j < nrays; j++)
     {
+      //printf("%d: ", j + 1 + 16*i);
       double i0 = vec3D(i_b, i, j, 0, nrays, ncrossings);
       double multAcc = 1.0;
       for(int k = 1; k < ncrossings; k++)
@@ -333,12 +358,12 @@ void cbetGain(double* wMultOld, double* conv, double* logger, double medianDS, i
               continue;
             }
             double kmag = (omega/c)*sqrt(epsilon);
-            double kx1 = kmag * vec3D(dkx, i, j, m, nrays, ncrossings) / mag1;
-            double kx2 = kmag * vec3D(dkx, q, r, rayCross, nrays, ncrossings) / mag2;
+            double kx_seed = kmag * vec3D(dkx, i, j, m, nrays, ncrossings) / mag1;
+            double kx_pump = kmag * vec3D(dkx, q, r, rayCross, nrays, ncrossings) / mag2;
 
-            double kz1 = kmag * vec3D(dkz, i, j, m, nrays, ncrossings) / mag1;
-            double kz2 = kmag * vec3D(dkz, q, r, rayCross, nrays, ncrossings) / mag2;
-            double kiaw = sqrt(pow(kx2-kx1,2.0)+pow(kz2-kz1,2.0));
+            double kz_seed = kmag * vec3D(dkz, i, j, m, nrays, ncrossings) / mag1;
+            double kz_pump = kmag * vec3D(dkz, q, r, rayCross, nrays, ncrossings) / mag2;
+            double kiaw = sqrt(pow(kx_pump-kx_seed,2.0)+pow(kz_pump-kz_seed,2.0));
 
             double ws = kiaw*cs;
             double pumpI;
@@ -359,7 +384,7 @@ void cbetGain(double* wMultOld, double* conv, double* logger, double medianDS, i
             double averageArea = (vec3D(areas, q, r, rayCross+offset, nrays, ncrossings) + vec3D(areas, q, r, rayCross, nrays, ncrossings))/2;
             double epseff = 1/sqrt(1-neOverNc);
             double interactionMult = 1/(averageArea*sqrt(1-neOverNc))/sqrt(epseff);
-            double eta = ((omega2-omega1)-(kx1-kx2)*vec2D(u_flow,ix,iz,nz))/(ws+1.0e-10);
+            double eta = ((omega2-omega1)-(kx_seed-kx_pump)*vec2D(u_flow,ix,iz,nz))/(ws+1.0e-10);
             double couplingCoeff = cbetconst*1/omega*1/(Te_eV/1e3 + 3*Ti_eV/(1e3*Z))*neOverNc/iaw*iaw*iaw*eta/(pow(eta*eta-1, 2) + iaw*iaw*eta*eta)*interactionMult;
             double efield2 = 8.*pi*1.0e7*pumpI/c;
             double P = (pow(iaw,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw),2)*pow(eta,2));
@@ -496,8 +521,27 @@ void cbet()
   }
   double medianDS = median(dkmag, CROSS);
   double currmax = maxIncr;
+  int raystore[nbeams*nx*nz];
+  for(int beam = 0; beam < nbeams; beam++)
+  {
+    for(int ix = 0; ix < nx; ix++)
+    {
+      for(int iz = 0; iz < nz; iz++)
+      {
+        int numpresent = vec3D(present, beam, ix, iz, nx, nz);
+        if(!numpresent)
+        {
+          continue;
+        }
+        int ind = rand() % numpresent;
+        raystore[(beam*nx + ix)*nz + iz] = vec4D(marked, beam, ix, iz, ind, nx, nz, numstored) - 1;
+        //printf("%d %d %d\n", raystore[(beam*nx + ix)*nz + iz], );
+      }
+    }
+  }
   auto startKernel = std::chrono::high_resolution_clock::now();
-  for(int i = 1; i <= 100; i++)
+  int i;
+  for(i = 1; i <= 100; i++)
   {
     double updateconv = 0.0;
 
@@ -505,9 +549,9 @@ void cbet()
     {
       conv[j] = 0;
     }
-    getCBETGain(wMultOld, conv, spatialLog, medianDS, i);
+    getCBETGain(wMultOld, conv, spatialLog, medianDS, i, raystore);
     updateIntensities(i+1, &updateconv, currmax);
-    //getchar();
+  //  printf("%f\n", updateconv);
     double convMax = 0.0;
     for(int i = 0; i < threads; i++)
     {
@@ -544,7 +588,7 @@ void cbet()
       }
       printf("\n");
     }
-  //printf("\n");
+  printf("%d\n", i);
   for(int i = 0; i < nx; i++)
   {
     for(int j = 0; j < nz; j++)

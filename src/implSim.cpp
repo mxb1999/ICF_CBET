@@ -117,9 +117,9 @@ void importFromH5()
   importFromH5(file, "areaRatios", (void**)&tempArea, sizeof(double), H5T_NATIVE_DOUBLE);
   importFromH5(file, "rayVectors", (void**)&ray_k, sizeof(double), H5T_NATIVE_DOUBLE);
   importFromH5(file, "ds", (void**)&dkmag, sizeof(double), H5T_NATIVE_DOUBLE);
-  for(int i = 0; i < CROSS*3; i++)
+  for(int i = 0; i < CROSS; i++)
   {
-    //printf("%f\n", ray_k[i]);
+    //printf("%d\n", boxes[i]);
   }
   dkx = new double[CROSS]{0.0};
   dkz = new double[CROSS]{0.0};
@@ -145,7 +145,6 @@ void importFromH5()
       }
     }
   }
-  getchar();
   free(tempArea);
   H5Fclose(file);
 }

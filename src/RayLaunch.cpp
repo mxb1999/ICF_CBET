@@ -20,16 +20,12 @@ void fillMarked()//marked temp indexed by rays
         cx = (id - 1) % nx;
         cz = (id - cx - 1)/nx;
         int val = vec3D(present, beam, cx,cz, nx,nz);
-        printf("(%d, %d :: %d %d) ", cx, cz, val, raynum);
         vec4DW(marked, beam,cx,cz, val, nx,nz, numstored, raynum+1);
         vec3DI(present, beam, cx,cz, nx,nz,1);
       }
-          printf("\n");
 
     }
-    printf("\n");
   }
-  getchar();
 }
 
 

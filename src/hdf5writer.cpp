@@ -325,7 +325,7 @@ void updateH5()
   {
     for(int j = 0; j < nz;j++)
     {
-      WPlotTotal[i*nz+j] =  WPlot2[i*nz+j];//+WPlot2[i*nz+j];//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
+      WPlotTotal[i*nz+j] =  WPlot1[i*nz+j]+WPlot2[i*nz+j];//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
      
     }
   }

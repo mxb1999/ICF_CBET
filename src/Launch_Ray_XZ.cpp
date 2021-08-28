@@ -47,13 +47,13 @@ void track(int raynum, double xinit, double zinit, double kx_init, double kz_ini
       if(condx && condz)//both boundaries were crossed
       {
         if(raynum == 0 && beam == 1)
-          printf("\t1\n");
+          //printf("\t1\n");
         xnew = currX*dx+xmin+dx*dirX;//added dx*dirX term differentiates whether the ray entered in the top/bottom and left/right of the zone
         znew = currZ*dz+zmin+dz*dirZ;
       }else if(condx)//the x boundary was crossed, linearly interpolate x
       {
         if(raynum == 0 && beam == 1)
-          printf("\t2\n");
+         // printf("\t2\n");
         xnew = currX*dx+xmin + dx*dirX;
         double m = (z_coor-z_coor_prev)/(x_coor-x_coor_prev);
         double b = 0.5*(z_coor+z_coor_prev-m*(x_coor_prev + x_coor));

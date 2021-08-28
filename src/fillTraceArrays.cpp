@@ -58,14 +58,6 @@ void fillTraceArrays()
             vec2DW(wpe,i,j,nz, temp);
         }
     }
-    for(int i = 0; i < nx; i++)
-    {
-        for(int j = 0; j < nz; j++)
-        {
-            printf("(%e %d) ", eden[i*nz + j], i*nz+j);
-        }
-        printf("\n");
-    }
     for (int i = 0; i < nx - 1; i++)
     {
         for (int j = 0; j < nz - 1; j++)
