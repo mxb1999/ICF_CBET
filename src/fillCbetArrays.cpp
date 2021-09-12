@@ -96,10 +96,11 @@ void initArrays()
   double offsets[nrays];
   span(offsets, beam_min_z, beam_max_z, nrays);
   //#pragma omp parallel for num_threads(threads)
+  int actualIntensity = intensity/1e14;
   for(int i = 0; i < nrays;i++)
   {
     //printf("%e\n",interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays));
-    initIntensities[i] = intensity*exp(-2*pow(abs(offsets[i]/2e-4), 4.0));//interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays)*intensity;
+    initIntensities[i] = actualIntensity*exp(-2*pow(abs(offsets[i]/2e-4), 4.0));//interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays)*intensity;
   }
   //Initialize CBET array values
   

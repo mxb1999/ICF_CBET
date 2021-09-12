@@ -1,4 +1,3 @@
-#include <iostream>
 #include <vector>
 #include <fstream>
 #include <cmath>
@@ -7,7 +6,6 @@
 //#include "implSim.hpp"
 #include <algorithm>
 #include <functional>
-#include <iostream>
 #include <cstring>
 //implementations of custom math functions
 
@@ -66,7 +64,7 @@ double* interpArr(double* xArr, double* yArr, double* target, int xsize, int siz
 //fills an array of size num with evenly spaced double values between start and stop
 void span(double* target, double start, double stop, int num)
 {
-  float increment = (stop-start)/(num - 1);
+  double increment = (stop-start)/(num-1);
   for(int i = 0; i < num; i++)
   {
     target[i] = start + (increment * i);
@@ -102,30 +100,26 @@ void sort(double* arr, int min, int max)
     sort(arr, partInd+1, max);
   }
 }
+static bool compare_arr_ign_zeros()
+{
 
+}
 //find the median index of an unsorted array
 double median(double* arr, int N)
 {
-  int cnt = 0;
+  std::vector<double> vec = std::vector<double>();
+  int counter = 0;
   for(int i = 0; i < N; i++)
   {
-    if(arr[i] == arr[i])
+    if(arr[i] == arr[i] && fabs(arr[i]) > 1e-10)
     {
-      cnt++;
+      vec.push_back(arr[i]); //not efficient but I don't give a shit
+      counter++;
     }
   }
-  double copy[cnt];
-  cnt = 0;
-  for(int i = 0; i < N; i++)
-  {
-    if(arr[i] == arr[i])
-    {
-      copy[cnt] = arr[i];
-      cnt++;
-    }
-  }
-  sort(copy, 0, cnt);
-  return copy[cnt/2];
+  std::sort(vec.begin(), vec.end());
+  int cnt = vec.size();
+  return vec[cnt/2];
 }
 /*
 int main(int argc, char** argv)

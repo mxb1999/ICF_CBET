@@ -234,7 +234,7 @@ void writePlotArrays()
 }
 void updateH5()
 {
-  std::string name = "output/implSim.hdf";
+  std::string name = "output/implSim.h5";
   if(printUpdates)
   {
     //cout << "Initializing plot arrays..." << endl;
@@ -284,7 +284,7 @@ void updateH5()
 
   double* WPlot1 = new double[GRID]{0.0};
   double* WPlot2 = new double[GRID]{0.0};
-  double* WPlotTotal = new double[GRID]{0.0};
+  double* WPlotTotal = new double[CROSS]{0.0};
 
   int i = 0;
   for(int j = 0; j < nrays;j++)
@@ -321,14 +321,6 @@ void updateH5()
       WPlot2[boxx*nz+boxz] = vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
     }
   }
-  for(int i = 0; i < nx;i++)
-  {
-    for(int j = 0; j < nz;j++)
-    {
-      WPlotTotal[i*nz+j] =  WPlot1[i*nz+j]+WPlot2[i*nz+j];//(vec4D(marked,1,i,j,0,nx,nz,numstored)!= 0);
-     
-    }
-  }
   
     edenplot = new double[nx*nz]{0.0};
     for(int i = 0; i < nx;i++)
@@ -340,15 +332,15 @@ void updateH5()
     }
     int check = 0;
   printf("check %d\n", ++check);
-  writeArr(WPlotTotal, 0, store, "/new_field", 2, new int[2]{nx,nz});//energy deposited, CBET multiplier for beam 2
+  writeArr(i_b, 0, store, "/new_field", 2, new int[2]{nbeams*nrays,ncrossings});//energy deposited, CBET multiplier for beam 2
   writeArr(WPlot1, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
   writeArr(WPlot2, 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates
   writeArr(z, 0, store, "/z", 1, new int[1]{nz});//z coordinates
-
+  writeArr(spatialLog, 0, store, "/logger", 2, new int[2]{nbeams*nrays,ncrossings});//z coordinates
   writeArr(eden, 0, store, "/eden", 2, new int[2]{nx,nz});//electron density gradient
-  writeArr(edenplot, 0, store, "/eden_ncrit", 2, new int[2]{nx,nz});//normalized electron density gradient
+  writeArr(neovernc, 0, store, "/eden_ncrit", 2, new int[2]{nbeams*nrays,ncrossings});//normalized electron density gradient
   writeArr(machnum, 0, store, "/machnum", 2, new int[2]{nx,nz});//implosion velocity relative to Mach 1
   //writeArr(edepplot, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//total intensity deposited
 

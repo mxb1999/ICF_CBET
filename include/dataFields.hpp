@@ -16,7 +16,7 @@
     template <typename T>
     inline T vec4D(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
     {
-        return arr[(((a)*d2+b)*d3+c)*d4+d];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        return arr[(((a)*(d2)+b)*(d3)+c)*(d4)+d];//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
@@ -27,12 +27,12 @@
     template <typename T>
     inline T vec2D(T* arr, int a, int b, int d2)
     {
-        return arr[(a)*(d2)+b];//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        return arr[(a)*(d2)+b];//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
     template <typename T>
     inline T* vec4DP(T* arr, int a, int b, int c, int d, int d2, int d3, int d4)
     {
-        return arr + (((a)*(d2)+b)*(d3)+c)*(d4)+d;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        return arr + (((a)*(d2)+b)*(d3)+c)*(d4)+d;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
@@ -43,93 +43,93 @@
     template <typename T>
     inline T* vec2DP(T* arr, int a, int b, int d2)
     {
-        return arr + (a)*d2+b;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        return arr + (a)*(d2)+b;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
     template <typename T>
     inline void vec4DW(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
     {
-        arr[(((a)*d2+b)*d3+c)*d4+d] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(((a)*(d2)+b)*(d3)+c)*(d4)+d] = val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
     inline void vec3DW(T* arr, int a, int b, int c, int d2, int d3, T val)
     {
-        arr[((a)*d2+b)*d3+c] = val;
+        arr[((a)*(d2)+b)*(d3)+c] = val;
     }
     template <typename T>
     inline void vec2DW(T* arr, int a, int b, int d2, T val)
     {
-        arr[(a)*d2+b] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(a)*(d2)+b] = val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
     inline void vec4DI(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
     {
-        arr[(((a)*d2+b)*d3+c)*d4+d] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(((a)*(d2)+b)*(d3)+c)*(d4)+d] += val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
     template <typename T>
     inline void vec3DI(T* arr, int a, int b, int c, int d2, int d3, T val)
     {
-        arr[((a)*d2+b)*d3+c] += val;
+        arr[((a)*(d2)+b)*(d3)+c] += val;
     }
     template <typename T>
     inline void vec2DI(T* arr, int a, int b, int d2, T val)
     {
-        arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(a)*(d2)+b] += val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
     inline void vec4DM(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
     {
-        arr[(((a)*d2+b)*d3+c)*d4+d] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(((a)*(d2)+b)*(d3)+c)*(d4)+d] *= val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
     template <typename T>
     inline void vec3DM(T* arr, int a, int b, int c, int d2, int d3, T val)
     {
-        arr[((a)*d2+b)*d3+c] *= val;
+        arr[((a)*(d2)+b)*(d3)+c] *= val;
     }
     template <typename T>
     inline void vec2DM(T* arr, int a, int b, int d2, T val)
     {
-        arr[(a)*d2+b] *= val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(a)*(d2)+b] *= val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
     template <typename T>
     inline void vec4DWA(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
     {
         #pragma omp atomic write
-        arr[(((a)*d2+b)*d3+c)*d4+d] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(((a)*(d2)+b)*(d3)+c)*(d4)+d] = val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
     inline void vec3DWA(T* arr, int a, int b, int c, int d2, int d3, T val)
     {
         #pragma omp atomic write
-        arr[((a)*d2+b)*d3+c] = val;
+        arr[((a)*(d2)+b)*(d3)+c] = val;
     }
     template <typename T>
     inline void vec2DWA(T* arr, int a, int b, int d2, T val)
     {
         #pragma omp atomic write
-        arr[(a)*d2+b] = val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(a)*(d2)+b] = val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     template <typename T>
     inline void vec4DIA(T* arr, int a, int b, int c, int d, int d2, int d3, int d4, T val)
     {
         #pragma omp atomic update
-        arr[(((a)*d2+b)*d3+c)*d4+d] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(((a)*(d2)+b)*(d3)+c)*(d4)+d] += val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
     template <typename T>
     inline void vec3DIA(T* arr, int a, int b, int c, int d2, int d3, T val)
     {
         #pragma omp atomic update
-        arr[((a)*d2+b)*d3+c] += val;
+        arr[((a)*(d2)+b)*(d3)+c] += val;
     }
     template <typename T>
     inline void vec2DIA(T* arr, int a, int b, int d2, T val)
     {
         #pragma omp atomic update
-        arr[(a)*d2+b] += val;//(arr.data() + (((a)*d2+b)*d3+c)*d4+d);
+        arr[(a)*(d2)+b] += val;//(arr.data() + (((a)*(d2)+b)*(d3)+c)*(d4)+d);
     }
 
     typedef struct Intersection Intersection;
@@ -270,6 +270,7 @@
     extern int numstored;
     extern int rays_per_zone;
     extern int ncrossings;
+    extern double* spatialLog;
 
     extern double courant_mult;
     extern double intensity;
@@ -278,7 +279,8 @@
     extern double beam_min_z;
     extern double beam_max_z;
     extern double dt;
-
+    extern double* neovernc;
+    extern int* interactions_ML;
     //Fundamental Constants
     extern  double sigma; 
     extern  double e0;

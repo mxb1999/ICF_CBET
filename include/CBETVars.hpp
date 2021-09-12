@@ -11,3 +11,6 @@
   double* i_b_prev; //nbeams nx nz
   double* i_b_new;//nx nz
   double* wMult;
+  double* spatialLog;
+  double* neovernc;
+  int* interactions_ML;
