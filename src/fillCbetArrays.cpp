@@ -129,7 +129,7 @@ void initArrays()
   }
   double area = dx*dz;
   double* spanVal = new double[nz];
-  span(spanVal,1,1.8,nz);
+  span(spanVal,1.4,2.2,nz);
   //#pragma omp parallel for num_threads(threads)
   for(int i = 0; i < nz; i++)
   {

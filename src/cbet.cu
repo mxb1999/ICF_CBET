@@ -5,193 +5,142 @@
 
 
 //define CBET Gain Function
-__global__ void 
-cbetGain(CBETVars* constants, CBETArrs* arrays,int* marked, double* wMult, double* wMultOld, double mi, double mi_kg, double* maxDelta,int beam = 0)
+#define ABSLIM 1000.0
+#ifndef NORM
+  #define NORM 1e14
+#endif
+//main CBET routine
+__global__
+void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS, int iteration, int* raystore)
 {
-
-  int nbeams_cu = constants->nbeams_cu;
-  int nrays_cu = constants->nrays_cu;
-  int index = blockIdx.x*blockDim.x+threadIdx.x;
-  int ncrossings_cu = constants->ncrossings_cu;
-  if(index >= nbeams_cu*nrays_cu*ncrossings_cu)
+  double e = 4.8032e-10;
+  me = 9.109384e-28;
+  kb = 1.38065e-16;
+  c=2.99792458e10;
+  double cbetConst = (8*pi*1e7*NORM/c)*(e*e/(4*me*c*kb*1.1605e7))*1e-4;
+  int i, j, k, q, p;//loop variables
+  int index = blockIdx.x * blockDim.x + threadIdx.x;
+  int beam = index / nrays;
+  int ray = index % nrays;
+  for(k = 0; k < ncrossings-1; k++)//for all crossings of ray j
   {
-      return;
-  }
-  
-  beam = index / (nrays_cu*ncrossings_cu);
-  /*if(index >= (nrays_cu))
-  {
-      return;
-  }*/
-  int raynum = index/ncrossings_cu % nrays_cu;
-  //imported constants
-  int nx_cu = constants->nx_cu;
-  int nz_cu = constants->nz_cu;
-  int numstored_cu = constants->numstored_cu;
-  double dx_cu = constants->dx_cu;
-  double dz_cu = constants->dz_cu;
-  double ncrit_cu = constants->ncrit_cu;
-  double c_cu = constants->c_cu;
-  double pi_cu = constants->pi_cu;
-  double iaw_cu = constants->iaw_cu;
-  double cs_cu = constants->cs_cu;
-  double estat_cu = constants->estat_cu;
-  double Ti_cu = constants->Ti_cu;
-  double Te_cu = constants->Te_cu;
-  double Z_cu = constants->Z_cu;
-  double omega_cu = constants->omega_cu;
-  double kb_cu = constants->kb_cu;
-  double me_cu = constants->me_cu;
-
-  //imported arrays
-  double* i_b_cu = arrays->i_b_cu;
-  double* i_b_new_cu = arrays->i_b_new_cu;
-  double* W_cu = arrays->W_cu;
-
-  double* x_cu = arrays->x_cu;
-
-  double* z_cu = arrays->z_cu;
-  double* W_new_cu = arrays->W_new_cu;
-  double* dkx_cu = arrays->dkx_cu;
-  double* dkz_cu = arrays->dkz_cu;
-  double* dkmag_cu = arrays->dkmag_cu;
-  double* uflow_cu = arrays->uflow_cu;
-  
-  double* eden_cu = arrays->eden_cu;
-  int* boxes_cu = arrays->boxes_cu;
-  int* numrays_cu = arrays->numrays_cu;
-  int* present_cu = arrays->present_cu; 
-  double constant1 = (pow(estat_cu,2.0))/(4*(1.0e3*me_cu)*c_cu*omega_cu*kb_cu*Te_cu*(1+3*Ti_cu/(Z_cu*Te_cu)));
-  double coullim1 = Ti_cu*me_cu/mi;
-  double coullim2 = 10*pow(Z_cu,2);
-  int logswitch = 0;
-  if(Te_cu < coullim1)
-  {
-    logswitch = 1;
-  }else if(coullim1 < Te_cu && Te_cu < coullim2)
-  {
-    logswitch = 2;
-  }else if(coullim1 < coullim2 && coullim2 < Te_cu)
-  {
-    logswitch = 3;
-  }
-  if(logswitch == 0)
-  {
-    printf("Error in inputs\n");
-    return;
-  }   
-  int m = index % ncrossings_cu;
-  //iterate over each ray beam (excepting the last one)
-  //each beam will be treated as a pump beam for those preceeding, as a seed beam for those following
-  double i0 = vec3D_cu(i_b_cu, beam,raynum,0, nrays_cu, ncrossings_cu);
-  int max = INT32_MIN;
-  
-  int ix = vec4D_cu(boxes_cu, beam,raynum,m, 0, nrays_cu, ncrossings_cu, 2);
-  int iz = vec4D_cu(boxes_cu, beam,raynum,m, 1, nrays_cu, ncrossings_cu, 2);
-  if(!ix || !iz)
-  {
-    return;
-  }
-  ix--;
-  iz--;
-  int icnt = vec3D_cu(present_cu, beam, ix,iz,nx_cu,nz_cu);
-  double omega1 = omega_cu;
-  double mag1 = vec3D_cu(dkmag_cu, beam, raynum, m, nrays_cu, ncrossings_cu);
-  double ne = vec2D_cu(eden_cu, ix,iz,nz_cu);
-  double epsilon = 1.0-ne/ncrit_cu;
-  double coullog;//coulomb logarithm for electron-electron collisions
-  if(logswitch == 1)
-  {
-    double mp_kg = 1.6726219e-27;//mass of proton in kg 
-    coullog = 30-log(sqrt(ne)/pow(Ti_cu, 3/2)*pow(Z_cu, 3/2)*mi_kg/mp_kg);
-  }else if(logswitch == 2)
-  {
-    coullog = 23-log(sqrt(ne)/pow(Ti_cu, 3/2)*Z_cu);
-  }else
-  {
-    coullog = 24-log(sqrt(ne)/Ti_cu);
-  }
-  double vei = 4*sqrt(2*pi_cu)*pow(estat_cu,4)*pow(Z_cu,2)*coullog/(3*sqrt(me_cu)*pow(Te_cu, 3/2));
-  double L_aij = c_cu*sqrt(epsilon)*ncrit_cu/(vei*ne);
-  double prevVal = vec3D_cu(wMultOld,beam,raynum,m, nrays_cu, ncrossings_cu);
-  double prev = exp(-1*mag1/L_aij);
-  vec3DW_cu(wMult,beam,raynum,m, nrays_cu, ncrossings_cu, exp(-1*mag1/L_aij));
-  double limmult = prev;
-  for(int q = 0; q < nbeams_cu;q++)
-  {
-    if(q == beam)
+    int ix, iz;
+    int id = vec3D(boxes, i, j, k, nrays, ncrossings);//get the spatial location
+    if(!id)//no more crossings, break
     {
-      continue;
+      break;
     }
-    if(!vec4D_cu(marked,q,ix,iz,0, nx_cu,nz_cu,numstored_cu))
+    ix = (id - 1) % nx;//convert to x and z coordinates
+    iz = (id - ix - 1)/nx;
+    int islast = 0;//store whether this is the last crossing, needed for area step size calculations
+    if(k != ncrossings - 1)
     {
-      continue;
-    }
-    int qcnt = vec3D_cu(present_cu, q, ix,iz,nx_cu,nz_cu);
-    //int qcross[qcnt]{0};
-    int lim = (qcnt < icnt) ? qcnt : icnt;
-    for(int l = 0; l < lim; l++)
-    {
-    int rayCross = 0;
-    int r = vec4D_cu(marked,q,ix,iz,l, nx_cu,nz_cu,numstored_cu)-1;
-    double multAcc = vec3D_cu(wMultOld, q,r,0, nrays_cu, ncrossings_cu);
-    for(int p = 0; p < ncrossings_cu; p++)
-    {
-      int ox = vec4D_cu(boxes_cu, q,r,p, 0, nrays_cu, ncrossings_cu, 2);
-      int oz = vec4D_cu(boxes_cu, q,r,p, 1, nrays_cu, ncrossings_cu, 2);
-      if(!ox || !oz)
+      int idnext = vec3D(boxes, i, j, k+1, nrays, ncrossings);
+      if(!idnext)//this is the last crossing of ray j
       {
-        break;
+        islast = 1;
       }
-      ox--;
-      oz--;
-      multAcc *= vec3D_cu(wMultOld, q,r,p, nrays_cu, ncrossings_cu);
-      if(ox == ix && oz == iz)
+    }else
+    {
+      islast = 1;
+    }
+    double neOverNc = vec3D(neovernc, i, j, k, nrays, ncrossings);//
+    double cbetSum = 0.0;
+    double ds = vec3D(dkmag, i, j, k, nrays, ncrossings);
+
+    for(q = 0; q < nbeams; q++)//for every other beam
+    {
+      if(q == i)
       {
-        rayCross = p;
-        break;
+        continue;
       }
-    }
+      int ray_o = raystore[(q*nx + ix)*nz + iz] - 1;//ray determined to be the pump for this cell of beam q
+      if(ray_o == -1)//no valid interactions with beam q
+      {
+        continue;
+      }
 
-    double mag2 = vec3D_cu(dkmag_cu, q, r, rayCross, nrays_cu, ncrossings_cu);
-    if(mag2 < 1e-10)
-    {
-      continue;
-    }
-    double cumProd = vec3D_cu(wMult, q, r, rayCross, nrays_cu, ncrossings_cu);
-    double kmag = (omega_cu/c_cu)*sqrt(epsilon);
-    double kx1 = kmag * vec3D_cu(dkx_cu, beam, raynum, m, nrays_cu, ncrossings_cu) / mag1;
-    double kx2 = kmag * vec3D_cu(dkx_cu, q, r, rayCross, nrays_cu, ncrossings_cu) / mag2;
-    double kz1 = kmag * vec3D_cu(dkz_cu, beam, raynum, m, nrays_cu, ncrossings_cu) / mag1;
-    double kz2 = kmag * vec3D_cu(dkz_cu, q, r, rayCross, nrays_cu, ncrossings_cu) / mag2;
-    double kiaw = sqrt(pow(kx2-kx1,2.0)+pow(kz2-kz1,2.0));
-    double ws = kiaw*cs_cu;
-    double omega2 = omega_cu;
-    double eta = ((omega2-omega1)-(kx2-kx1)*vec2D_cu(uflow_cu,ix,iz,nz_cu))/(ws+1.0e-10);
-    /*if(beam == 1)
-    {
-      printf("eta %e\n", eta);
-    }*/
-    double efield2 = sqrt(8.*pi_cu*1.0e7*vec3D_cu(i_b_cu, q, r, rayCross, nrays_cu, ncrossings_cu)/c_cu);   
-    double P = (pow(iaw_cu,2)*eta)/(pow((pow(eta,2)-1.0),2)+pow((iaw_cu),2)*pow(eta,2));  
-    double gain1 = constant1*pow(efield2,2)*(ne/ncrit_cu)*(1/iaw_cu)*P/icnt;               //L^-1 from Russ's paper
-    double oldEnergy2 = multAcc;
-    double newEnergy1Mult = exp(oldEnergy2*mag1*gain1/sqrt(epsilon));
-    limmult*=newEnergy1Mult;
-    //printf("multAcc %e\n", multAcc);
-    }
-    double curr = limmult;
-    if(beam == 1  && limmult > 1.5)
-    {
-      //printf("Limmult %d %d %e\n",raynum, m, limmult);
-    }       
-    vec3DW_cu(wMult, beam,raynum,m, nrays_cu, ncrossings_cu, limmult);
+      //RAYCROSS SUBROUTINE
+      int raycross = 0;
+      int q_location = vec3D(boxes, q, ray_o, raycross, nrays, ncrossings);//spatial index of the ray
+      int xcurr = (q_location - 1) % nx; //x index (from MATLAB array scheme, will change based on C array structure)
+      int zcurr = (q_location - xcurr - 1)/nx;//z index (from MATLAB array scheme, will change based on C array structure)
+      while (xcurr != ix || zcurr != iz)//while in a different cell
+      {
+        raycross += 1;//increase rayCross
+        if(raycross >= ncrossings)//should not occur, once all of the bugs are ironed out->can be removed to reduce branching
+        {
+          printf("Error: Ray %d did not pass through (%d, %d)\n", ray_o, ix, iz);
+          break;
+        }
+        q_location = vec3D(boxes, q, ray_o, raycross, nrays, ncrossings);//new spatial index
+        xcurr = (q_location - 1) % nx;//update indices
+        zcurr = (q_location - xcurr - 1)/nx;
+      };
 
-    double currDev = abs(prevVal-curr)/prevVal;
-    maxDelta[index] = (currDev > maxDelta[index]) ? currDev : maxDelta[index];       
-    
+
+
+      int islastq = !(vec3D(boxes, q, ray_o, raycross+1, nrays, ncrossings));//check if this is the last crossing for ray_o
+      //INTERACTION MULTIPLIER: find ray_o's interaction multiplier
+      double area1, area2;
+      //get the average area of the ray across the zone
+      area1 = vec3D(areas, q, ray_o, raycross+!islastq, nrays, ncrossings);
+      area2 = vec3D(areas, q, ray_o, raycross, nrays, ncrossings);
+      double areaAvg = (area1+area2)/2;
+      double neOverNc = eden[ix*nz + iz]/ncrit;//NOTE: This neOverNc value can be taken straight from the grid
+      double neOverNcCorrected = fmin(neOverNc, 1.0);//clamp the maximum neOverNc value to
+      double neTerm = sqrt(1-neOverNcCorrected);//term used multiple times in calculations
+      double epsilonEff = neTerm*neTerm;
+      double interactionMult = 1/(areaAvg*neTerm)*1/sqrt(epsilonEff);
+
+
+      //eta Routine
+      double mag1 = ds, mag2;//get the magnitudes of the rays, can calculate here from dkx and dkz instead of storing explicitly
+      mag2 = vec3D(dkmag, q, ray_o, raycross, nrays, ncrossings);
+      double kx_seed = vec3D(dkx, i, j, k, nrays, ncrossings);//get the x and y components of the ray vectors
+      double kz_seed = vec3D(dkz, i, j, k, nrays, ncrossings);
+
+      double kx_pump = vec3D(dkx, q, ray_o, raycross, nrays, ncrossings);
+      double kz_pump = vec3D(dkz, q, ray_o, raycross, nrays, ncrossings);
+
+      double machx = machnum[ix*nz+iz];//the mach number of the plasma velocity
+      double machz = 0.0;//TODO: Implement multidimensional plasma velocity
+
+      double omega1 = omega, omega2 = omega; //assuming uniform wavelength/frequency
+      //find ion acoustic wave vector, difference of ray trajectories scaled to omega/(sqrt(1-neOverNc)*c)
+
+      double iawVector[] = {(omega1*kx_seed - omega2*kx_pump)*sqrt(1-neOverNc)/c,(omega1*kz_seed - omega2*kz_pump)*sqrt(1-neOverNc)/c};
+      double k_iaw = sqrt(iawVector[0]*iawVector[0] + iawVector[1]*iawVector[1]);//magnitude of the iaw vector
+      double etaNumerator = omega1-omega2 - (iawVector[0]*machx + iawVector[1]*machz)*cs;//numerator of eta
+      double etaDenominator = k_iaw*cs;//denominator of eta
+      double eta = etaNumerator/etaDenominator;//find eta
+      //double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);//calculate eta from the interacting rays
+
+
+      //FIND COUPLING MULTIPLIER
+      double param1 = cbetConst/(omega*(Te_eV/1e3 + 3 * Ti_eV/1e3/Z)); //Split coupling multiplier into discrete chuncks->easier debugging
+      double param2 = neOverNc/iaw*iaw*iaw*eta;
+      double param3 = (pow(eta*eta - 1, 2) + iaw*iaw*eta*eta);
+      double param4 = interactionMult;
+      double couplingMult = param1*param2/param3*param4*ds;//get the coupling multiplier
+
+      double otherIntensity1 = vec3D(i_b, q, ray_o, raycross, nrays, ncrossings);
+      double otherIntensity2 = vec3D(i_b, q, ray_o, raycross + !islastq, nrays, ncrossings);
+      double avgIntensity = (otherIntensity2 + otherIntensity1)/2;//average the intensity of the other ray across the cell
+      cbetSum += couplingMult*avgIntensity;//add to the accumulator
+    }
+    double mult = exp(-1*cbetSum);//exponentiate the sum
+    //LIMIT THE MULTIPLIER
+    double stepRatio = ds/medianDS;//ratio of path length to median
+    double multPerStep = (1-mult)/stepRatio;//ratio of multiplier to step length
+    double multiplierLim = maxIncr*iteration;//maximum allowable multiplier for iteration
+    multPerStep = (multPerStep > multiplierLim) ? multiplierLim : multPerStep;//abs(mult) greater than multiplier limit, clamp with appropriate sign
+    multPerStep = (multPerStep < -1*multiplierLim) ? -1*multiplierLim : multPerStep;
+    mult = 1 - multPerStep*stepRatio;//restore mult value
+    mult = (mult > ABSLIM) ? ABSLIM : mult;//make sure mult is never above absolute maximum
+    mult = (mult < 1/ABSLIM) ? 1/ABSLIM : mult;
+    vec3DW(wMult, i, j, k, nrays, ncrossings, mult);//store the limited value
   }
-  
 }
 
 __global__ void
@@ -322,7 +271,7 @@ void launchCBETKernel()
     for(int i = 0; i < maxIter; i++)
     {
       //printf("Test1\n");
-      cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
+      //cbetGain<<<B2, T>>>(vars, arrays, marked,wMult, wMultOld, mi, mi_kg,maxDelta);
       cudaDeviceSynchronize();
       //printf("Test2\n");
       updateIterVals<<<B, T>>>(wMultOld, wMult, i_b, i_b_new, nbeams, nrays, ncrossings);

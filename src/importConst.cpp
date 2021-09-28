@@ -124,7 +124,7 @@ void setInitParams()//import configuration file
   dt=courant_mult*fmin(dx,dz)/c;//time stepping
   nt=int(pow(courant_mult,-1.0)*fmax(nx,nz)*2.0)+1;//number of time steps to track for a given ray
   numstored = nx*6;//number of rays stored per grid zone
-  ncrossings = 222;//nx * 3;//max number of ray crossings that can be stored per ray
+  ncrossings = 377;//nx * 3;//max number of ray crossings that can be stored per ray
   freq = c/lambda;		// frequency of light, in Hz
   omega = 2*pi*freq;	// frequency of light, in rad/s
   ncrit = 1e-6*(pow(omega,2.0)*me*e0/pow(ec,2.0));

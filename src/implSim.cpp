@@ -87,6 +87,7 @@ void importFromH5(hid_t file, char* set_name, void** target, size_t unitSize, hi
   {
     size *= dims[i];
   }
+  printf("%s\n", set_name);
   printf("%d\n", ndims);
   if(ndims == 3)
   {
@@ -97,7 +98,6 @@ void importFromH5(hid_t file, char* set_name, void** target, size_t unitSize, hi
   }
 
   *target = malloc(size);
-  printf("Hello %s\n", set_name);
   status = H5Dread (dset, h5DataType, H5S_ALL, H5S_ALL, H5P_DEFAULT,
                 *target);
   H5Dclose(dset);
@@ -108,7 +108,7 @@ void importFromH5()
   //import ray info (areas, trajectories, and vectors) from MATLAB results
   free(boxes);
   free(areas);
-  char* path = "/home/matt/Documents/csc/Matlab/matlabcbet.h5";
+  char* path = "/home/matt/Documents/csc/projects/matlab_3b/matlabcbet_3beam.h5";
   hid_t file;
   herr_t status;
   file = H5Fopen(path, H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -118,7 +118,7 @@ void importFromH5()
   importFromH5(file, "rayVectors", (void**)&ray_k, sizeof(double), H5T_NATIVE_DOUBLE);
   importFromH5(file, "ds", (void**)&dkmag, sizeof(double), H5T_NATIVE_DOUBLE);
   importFromH5(file, "eden_ncrit", (void**)&neovernc, sizeof(double), H5T_NATIVE_DOUBLE);
-  importFromH5(file, "interactions", (void**)&interactions_ML, sizeof(int), H5T_NATIVE_INT);
+  //importFromH5(file, "interactions", (void**)&interactions_ML, sizeof(int), H5T_NATIVE_INT);
   for(int i = 0; i < CROSS; i++)
   {
     //printf("%d\n", boxes[i]);
@@ -132,22 +132,17 @@ void importFromH5()
     {
       for(int k = 0; k < ncrossings; k++)
       {
-        double* value = vec4DP(ray_k, i, j, k, 0, nrays, 223, 3);
-        double area = vec3D(tempArea, i, j, k, nrays, 223);
+        double* value = vec4DP(ray_k, i, j, k, 0, nrays, 378, 3);
+        double area = vec3D(tempArea, i, j, k, nrays, 378);
         double kx = value[0], kz = value[1];
-
-        int rayindex = j;
-        if(i == 1)
-        {
-          rayindex == 2*nrays-j-1;
-        }
-        vec3DW(dkx, i, rayindex, k, nrays, ncrossings, kx);
-        vec3DW(dkz, i, rayindex, k, nrays, ncrossings, kz);
+        vec3DW(dkx, i, j, k, nrays, ncrossings, kx);
+        vec3DW(dkz, i, j, k, nrays, ncrossings, kz);
         //printf("%e %e\n", kx, kz);
-        vec3DW(areas, i, rayindex, k, nrays, ncrossings, area);
+        vec3DW(areas, i, j, k, nrays, ncrossings, area);
       }
     }
   }
+  getchar();
   free(tempArea);
   H5Fclose(file);
 }

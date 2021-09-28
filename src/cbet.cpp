@@ -4,23 +4,22 @@
 
 //Different approach, break into unit-testable subroutines (inefficient, but should work)
 #define NORM 1e14
-double getInteractionMultiplier(int beam, int ray, int crossing, int ix, int iz, int islast, double neOverNc)
+double getInteractionMultiplier(int beam, int ray, int crossing, int ix, int iz, int islast)
 {
   //calculate the interaction multiplier given the ray areas, the spatial position, the ray index, and the beam index
   double area1, area2;
   //get the average area of the ray across the zone
-  area1 = vec3D(areas, beam, ray, crossing+1, nrays, ncrossings);
+  area1 = vec3D(areas, beam, ray, crossing+!islast, nrays, ncrossings);
   area2 = vec3D(areas, beam, ray, crossing, nrays, ncrossings);
   double areaAvg = (area1+area2)/2;
-  neOverNc = eden[ix*nz + iz]/ncrit;//NOTE: This neOverNc value can be taken straight from the grid
+  double neOverNc = eden[ix*nz + iz]/ncrit;//NOTE: This neOverNc value can be taken straight from the grid
   double neOverNcCorrected = fmin(neOverNc, 1.0);//clamp the maximum neOverNc value to
-  double neTerm = sqrt(1-neOverNcCorrected);
+  double neTerm = sqrt(1-neOverNcCorrected);//term used multiple times in calculations
   double epsilonEff = neTerm*neTerm;
   double interactionMult = 1/(areaAvg*neTerm)*1/sqrt(epsilonEff);
-
   return interactionMult;
 }
-double getConstant()
+double getConstant()//calculate the CBET constant based on fundamental physical values, normalized to some relative intensity. Can easily be moved to top of main routine
 {
   double e = 4.8032e-10;
   me = 9.109384e-28;
@@ -29,152 +28,128 @@ double getConstant()
   double cbetconst = (8*pi*1e7*NORM/c)*(e*e/(4*me*c*kb*1.1605e7))*1e-4;
   return cbetconst;
 }
-int* findInteractions(int ix, int iz, int otherbeam, int* size)
-{
-  int i, j;
-  int size_local = vec3D(present, otherbeam, ix, iz, nx, nz);
-  int* result = new int[size_local];
-  *size = size_local;
-  for(int q = 0; q < size_local; q++)
-  {
-    int ray = vec4D(marked, otherbeam, ix, iz, q, nx, nz, numstored) - 1;
-    result[q] = ray;
-  }
-  return result;
-}
+
+
+//get the crossing index of ray passing through ix iz. NOTE: WILL SEGFAULT IF IT DOES NOT
 int getCrossing(int beam, int ray, int ix, int iz)
 {
-  int xcurr, zcurr;
   int rayCross = 0;
-  //printf("%d %d :: %d %d\n", ix, iz, xcurr, zcurr);
-  //printf("\n%d:: %d %d\n", ray, ix, iz);
-  while (xcurr != ix || zcurr != iz)
+  int id = vec3D(boxes, beam, ray, rayCross, nrays, ncrossings);//spatial index of the ray
+  int xcurr = (id - 1) % nx; //x index (from MATLAB array scheme, will change based on C array structure)
+  int zcurr = (id - xcurr - 1)/nx;//z index (from MATLAB array scheme, will change based on C array structure)
+  while (xcurr != ix || zcurr != iz)//while in a different cell
   {
-    //printf("%d %d, ", xcurr, zcurr);
-    //fflush(stdout);
-    //getchar();
-    rayCross += 1;
-    int id = vec3D(boxes, beam, ray, rayCross, nrays, ncrossings);
-    xcurr = (id - 1) % nx;
+    rayCross += 1;//increase rayCross
+    if(rayCross >= ncrossings)//should not occur, once all of the bugs are ironed out->can be removed to reduce branching
+    {
+      printf("Error: Ray %d did not pass through (%d, %d)\n", ray, ix, iz);
+      return -1;
+    }
+    id = vec3D(boxes, beam, ray, rayCross, nrays, ncrossings);//new spatial index
+    xcurr = (id - 1) % nx;//update indices
     zcurr = (id - xcurr - 1)/nx;
-
-    //printf("\t%d %d :: %d %d\n", ix, iz, xcurr, zcurr);
   };
-
   return rayCross;
 }
+
+//Calculate the eta term in the CBET transfer equation: determines the sign of the exchange. Depends on difference in ray trajectories, frequency, and plasma velocity
 double getEta(int beam_seed, int ray_seed, int cross_seed, int beam_pump, int ray_pump, int cross_pump, int ix, int iz)
 {
-  double mag1, mag2;
+  double mag1, mag2;//get the magnitudes of the rays, can calculate here from dkx and dkz instead of storing explicitly
   mag1 = vec3D(dkmag, beam_seed, ray_seed, cross_seed, nrays, ncrossings);
   mag2 = vec3D(dkmag, beam_pump, ray_pump, cross_pump, nrays, ncrossings);
-  double kx_seed = vec3D(dkx, beam_seed, ray_seed, cross_seed, nrays, ncrossings);///mag1;
-  double kz_seed = vec3D(dkz, beam_seed, ray_seed, cross_seed, nrays, ncrossings);///mag1;
+  double kx_seed = vec3D(dkx, beam_seed, ray_seed, cross_seed, nrays, ncrossings);//get the x and y components of the ray vectors
+  double kz_seed = vec3D(dkz, beam_seed, ray_seed, cross_seed, nrays, ncrossings);
 
-  double kx_pump = vec3D(dkx, beam_pump, ray_pump, cross_pump, nrays, ncrossings);///mag2;
-  double kz_pump = vec3D(dkz, beam_pump, ray_pump, cross_pump, nrays, ncrossings);///mag2;
+  double kx_pump = vec3D(dkx, beam_pump, ray_pump, cross_pump, nrays, ncrossings);
+  double kz_pump = vec3D(dkz, beam_pump, ray_pump, cross_pump, nrays, ncrossings);
 
-  double machx = machnum[ix*nz+iz];
-  double neOverNc = vec3D(neovernc, beam_pump, ray_pump, cross_pump, nrays, ncrossings);
+  double machx = machnum[ix*nz+iz];//the mach number of the plasma velocity
+  double neOverNc = eden[ix*nz + iz]/ncrit;//Interpolated neOverNc value
 
 
   double machz = 0.0;//TODO: Implement multidimensional plasma velocity;
-  double omega1 = omega, omega2 = omega;
+  double omega1 = omega, omega2 = omega; //assuming uniform wavelength/frequency
+  //find ion acoustic wave vector, difference of ray trajectories scaled to omega/(sqrt(1-neOverNc)*c)
+
   double iawVector[] = {(omega1*kx_seed - omega2*kx_pump)*sqrt(1-neOverNc)/c,(omega1*kz_seed - omega2*kz_pump)*sqrt(1-neOverNc)/c};
-  double k_iaw = sqrt(iawVector[0]*iawVector[0] + iawVector[1]*iawVector[1]);
-  double etaNumerator = omega1-omega2 - (iawVector[0]*machx + iawVector[1]*machz)*cs;
-  double etaDenominator = k_iaw*cs;
-  double eta = etaNumerator/etaDenominator;
-  int ray_o = (beam_seed == 1) ? ray_seed + 16 + 1 : ray_seed+1;
-
-  //printf("%f %f\n", (kx_seed), sqrt(1-neOverNc));
-
+  double k_iaw = sqrt(iawVector[0]*iawVector[0] + iawVector[1]*iawVector[1]);//magnitude of the iaw vector
+  double etaNumerator = omega1-omega2 - (iawVector[0]*machx + iawVector[1]*machz)*cs;//numerator of eta
+  double etaDenominator = k_iaw*cs;//denominator of eta
+  double eta = etaNumerator/etaDenominator;//find eta
   return eta;
 };
-double getCouplingMultiplier(int beam, int ray, int cross, int ix, int iz, double cbetconst, double eta, double interactionMult, double neOverNc)
+
+//Get the actual interaction multiplier based on precalculated values
+double getCouplingMultiplier(int beam, int ray, int cross, int ix, int iz, double cbetconst, double eta, double interactionMult)
 {
-  neOverNc = eden[ix*nz + iz]/ncrit;
-  double TeK = 2.0;
-  double TiK = 1.0;
-  Z = 3.100000000000000;
-  omega = 5.366528681791605e15;
-  double param1 = cbetconst/(omega*(TeK + 3 * TiK/Z));
+  double neOverNc = eden[ix*nz + iz]/ncrit;//neOverNc taken from grid
+  double param1 = cbetconst/(omega*(Te_eV/1e3 + 3 * Ti_eV/1e3/Z)); //Split coupling multiplier into discrete chuncks->easier debugging
   double param2 = neOverNc/iaw*iaw*iaw*eta;
   double param3 = (pow(eta*eta - 1, 2) + iaw*iaw*eta*eta);
   double param4 = interactionMult;
   double couplingMult = param1*param2/param3*param4;
-  //printf("%f\n",couplingMult);
-    //getchar();
   return couplingMult;
 }
+//limit the multiplier to ensure convergence. The limit on the multiplier increases over the course of the simulation, but the limit on the energy change will decrease to compensate
 #define ABSLIM 1000
 double limitMultiplier(double mult, int beam, int ray, int crossing, double medianDS, int iteration)
 {
-  double ds = vec3D(dkmag, beam, ray, crossing, nrays, ncrossings);
-  double stepRatio = ds/medianDS;
-  double multPerStep = (1-mult)/stepRatio;
-  double multiplierLim = maxIncr*iteration;
-  multPerStep = (multPerStep > multiplierLim) ? multiplierLim : multPerStep;
-  multPerStep = (multPerStep < -1*multiplierLim) ? -1*multiplierLim : multPerStep;
-  mult = 1 - multPerStep*stepRatio;
-  mult = (mult > ABSLIM) ? ABSLIM : mult;
-  mult = (mult < 1/ABSLIM) ? 1/ABSLIM : mult;
 
+  double ds = vec3D(dkmag, beam, ray, crossing, nrays, ncrossings);//ray path length in cell
+  double stepRatio = ds/medianDS;//ratio of path length to median
+  double multPerStep = (1-mult)/stepRatio;//ratio of multiplier to step length
+  double multiplierLim = maxIncr*iteration;//maximum allowable multiplier for iteration
+  multPerStep = (multPerStep > multiplierLim) ? multiplierLim : multPerStep;//abs(mult) greater than multiplier limit, clamp with appropriate sign
+  multPerStep = (multPerStep < -1*multiplierLim) ? -1*multiplierLim : multPerStep;
+  mult = 1 - multPerStep*stepRatio;//restore mult value
+  mult = (mult > ABSLIM) ? ABSLIM : mult;//make sure mult is never above absolute maximum
+  mult = (mult < 1/ABSLIM) ? 1/ABSLIM : mult;
   return mult;
 };
+
+//limit the energy change allowed in a given cell in a given iteration
 double limitEnergy(double multiplier_acc, double i0, double currMax, int beam, int ray, int crossing, double* maxChange)
 {
-  double i_prev = vec3D(i_b, beam, ray, crossing, nrays, ncrossings);
-  double i_curr = i0*multiplier_acc;
-  double fractionalChange = fabs(i_curr-i_prev)/i_prev;
+  double i_prev = vec3D(i_b, beam, ray, crossing, nrays, ncrossings);//previous value in cell
+  double i_curr = i0*multiplier_acc;//"current" value, unclamped update
+  double fractionalChange = fabs(i_curr-i_prev)/i_prev;//the fractional change in energy from imposing the update as is
   //printf("(%e) ", i0);
-  *maxChange = fmax(fractionalChange, *maxChange);
+  *maxChange = fmax(fractionalChange, *maxChange);//update the convergence check variable
   double correction = 0.0;
-
-  if(fractionalChange > currMax)
+  if(fractionalChange > currMax)//If the fractional change is too large, clamp the value
   {
     int sign = (i_curr - i_prev > 0) ? 1 : -1;
     correction = 1 + currMax*sign;
     i_curr = i_prev*correction;
   }
-
-  //printf("{%d %e}, ", crossing, (i_curr-i0*multiplier_acc)/1e14);
   return i_curr;
 }
+//main CBET routine
 void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS, int iteration, int* raystore)
 {
-  double cbetConst = getConstant();
+  double cbetConst = getConstant();//main CBET constant
+  int i, j, k, q, p;//loop variables
 
-  int i, j, k, q, p;
-
-  for(i = 0; i < nbeams; i++)
+  for(i = 0; i < nbeams; i++)//for all beams in system
   {
-    for(j = 0; j < nrays; j++)
+    for(j = 0; j < nrays; j++)//for all rays in beam i
     {
-      int index = (i != 1) ? j + 1 : j + 360;
-      //printf("%d: ", index);
-      for(k = 0; k < ncrossings-1; k++)
+      for(k = 0; k < ncrossings-1; k++)//for all crossings of ray j
       {
         int ix, iz;
-        int id = vec3D(boxes, i, j, k, nrays, ncrossings);
-        ix = (id - 1) % nx;
-        iz = (id - ix - 1)/nx;
-        //printf(":: %d %d %d| ", ix, iz, (iz)*nz + ix+1);
-       // fflush(stdout);
-        if(!id)
+        int id = vec3D(boxes, i, j, k, nrays, ncrossings);//get the spatial location
+        if(!id)//no more crossings, break
         {
           break;
         }
-
-        int islast = 0;
+        ix = (id - 1) % nx;//convert to x and z coordinates
+        iz = (id - ix - 1)/nx;
+        int islast = 0;//store whether this is the last crossing, needed for area step size calculations
         if(k != ncrossings - 1)
         {
-          int ixnext, iznext;
           int idnext = vec3D(boxes, i, j, k+1, nrays, ncrossings);
-
-          ixnext = (idnext - 1) % nx;
-          iznext = (idnext - ixnext - 1)/nx;
-          if(!ixnext || !iznext)
+          if(!idnext)//this is the last crossing of ray j
           {
             islast = 1;
           }
@@ -182,74 +157,174 @@ void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS
         {
           islast = 1;
         }
-        double neOverNc = vec3D(neovernc, i, j, k, nrays, ncrossings);
+        double neOverNc = vec3D(neovernc, i, j, k, nrays, ncrossings);//
         double cbetSum = 0.0;
         double ds = vec3D(dkmag, i, j, k, nrays, ncrossings);
 
-        for(q = 0; q < nbeams; q++)
+        for(q = 0; q < nbeams; q++)//for every other beam
         {
           if(q == i)
           {
             continue;
           }
-          int numInteractions;
-          int* interactions = findInteractions(ix, iz, q, &numInteractions);
-          if(!numInteractions)
+          int ray_o = raystore[(q*nx + ix)*nz + iz] - 1;//ray determined to be the pump for this cell of beam q
+          if(ray_o == -1)//no valid interactions with beam q
           {
             continue;
           }
-          int ray_o = raystore[(q*nx + ix)*nz + iz];
-          //int other_index = vec3D(interactions_ML, i, j, k, nrays, ncrossings);
-          //int ray_o = interactions[0];//other_index - nrays*q - 1;
-          int raycross = getCrossing(q, ray_o, ix, iz);
-          int islastq = !(vec3D(boxes, q, ray_o, raycross, nrays, ncrossings));
-          double interactionMultiplier = getInteractionMultiplier(q, ray_o, raycross, ix, iz, islast, neOverNc);
-          double area1 = vec3D(areas, q, ray_o, raycross+!islast, nrays, ncrossings);
-          double area2 = vec3D(areas, q, ray_o, raycross, nrays, ncrossings);
-          double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);
-          double areaAvg = (area1+area2)/2;
-          double couplingMult = getCouplingMultiplier(i, j, k, ix, iz, cbetConst, eta, interactionMultiplier, neOverNc);
 
-          couplingMult *= vec3D(dkmag, i,  j, k, nrays, ncrossings);
+          //RAYCROSS SUBROUTINE
+          int raycross = 0;
+          int q_location = vec3D(boxes, q, ray_o, raycross, nrays, ncrossings);//spatial index of the ray
+          int xcurr = (q_location - 1) % nx; //x index (from MATLAB array scheme, will change based on C array structure)
+          int zcurr = (q_location - xcurr - 1)/nx;//z index (from MATLAB array scheme, will change based on C array structure)
+          while (xcurr != ix || zcurr != iz)//while in a different cell
+          {
+            raycross += 1;//increase rayCross
+            if(raycross >= ncrossings)//should not occur, once all of the bugs are ironed out->can be removed to reduce branching
+            {
+              printf("Error: Ray %d did not pass through (%d, %d)\n", ray_o, ix, iz);
+              break;
+            }
+            q_location = vec3D(boxes, q, ray_o, raycross, nrays, ncrossings);//new spatial index
+            xcurr = (q_location - 1) % nx;//update indices
+            zcurr = (q_location - xcurr - 1)/nx;
+          };
+
+
+
+          int islastq = !(vec3D(boxes, q, ray_o, raycross+1, nrays, ncrossings));//check if this is the last crossing for ray_o
+          //INTERACTION MULTIPLIER: find ray_o's interaction multiplier
+          double area1, area2;
+          //get the average area of the ray across the zone
+          area1 = vec3D(areas, q, ray_o, raycross+!islastq, nrays, ncrossings);
+          area2 = vec3D(areas, q, ray_o, raycross, nrays, ncrossings);
+          double areaAvg = (area1+area2)/2;
+          double neOverNc = eden[ix*nz + iz]/ncrit;//NOTE: This neOverNc value can be taken straight from the grid
+          double neOverNcCorrected = fmin(neOverNc, 1.0);//clamp the maximum neOverNc value to
+          double neTerm = sqrt(1-neOverNcCorrected);//term used multiple times in calculations
+          double epsilonEff = neTerm*neTerm;
+          double interactionMult = 1/(areaAvg*neTerm)*1/sqrt(epsilonEff);
+
+
+          //eta Routine
+          double mag1 = ds, mag2;//get the magnitudes of the rays, can calculate here from dkx and dkz instead of storing explicitly
+          mag2 = vec3D(dkmag, q, ray_o, raycross, nrays, ncrossings);
+          double kx_seed = vec3D(dkx, i, j, k, nrays, ncrossings);//get the x and y components of the ray vectors
+          double kz_seed = vec3D(dkz, i, j, k, nrays, ncrossings);
+
+          double kx_pump = vec3D(dkx, q, ray_o, raycross, nrays, ncrossings);
+          double kz_pump = vec3D(dkz, q, ray_o, raycross, nrays, ncrossings);
+
+          double machx = machnum[ix*nz+iz];//the mach number of the plasma velocity
+          double machz = 0.0;//TODO: Implement multidimensional plasma velocity
+
+          double omega1 = omega, omega2 = omega; //assuming uniform wavelength/frequency
+          //find ion acoustic wave vector, difference of ray trajectories scaled to omega/(sqrt(1-neOverNc)*c)
+
+          double iawVector[] = {(omega1*kx_seed - omega2*kx_pump)*sqrt(1-neOverNc)/c,(omega1*kz_seed - omega2*kz_pump)*sqrt(1-neOverNc)/c};
+          double k_iaw = sqrt(iawVector[0]*iawVector[0] + iawVector[1]*iawVector[1]);//magnitude of the iaw vector
+          double etaNumerator = omega1-omega2 - (iawVector[0]*machx + iawVector[1]*machz)*cs;//numerator of eta
+          double etaDenominator = k_iaw*cs;//denominator of eta
+          double eta = etaNumerator/etaDenominator;//find eta
+          //double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);//calculate eta from the interacting rays
+
+
+          //FIND COUPLING MULTIPLIER
+          double param1 = cbetConst/(omega*(Te_eV/1e3 + 3 * Ti_eV/1e3/Z)); //Split coupling multiplier into discrete chuncks->easier debugging
+          double param2 = neOverNc/iaw*iaw*iaw*eta;
+          double param3 = (pow(eta*eta - 1, 2) + iaw*iaw*eta*eta);
+          double param4 = interactionMult;
+          double couplingMult = param1*param2/param3*param4*ds;//get the coupling multiplier
+
           double otherIntensity1 = vec3D(i_b, q, ray_o, raycross, nrays, ncrossings);
           double otherIntensity2 = vec3D(i_b, q, ray_o, raycross + !islastq, nrays, ncrossings);
-          double avgIntensity = (otherIntensity2 + otherIntensity1)/2;
-          cbetSum += couplingMult*avgIntensity;
-
-          vec3DW(spatialLog, i,  j, k, nrays, ncrossings, couplingMult);
-          //printf("{%d, %f} ",o_index, eta);
-          //if(i == 1 && j == 15 && k == 5)
-          // {
-            //printf("{%d %f %f}, ", ray_o, otherIntensity/1e14, couplingMult, cbetSum);
-        //  }
-
-
+          double avgIntensity = (otherIntensity2 + otherIntensity1)/2;//average the intensity of the other ray across the cell
+          cbetSum += couplingMult*avgIntensity;//add to the accumulator
         }
-
-        double mult = exp(-1*cbetSum);
-
-        //if(j + 1 + 16*i == 32)
-        //  {
-        //    printf("{%d %f}, ", k + 1, mult);
-        //  }
-        //printf("{%d %e}, ", k+1, mult);
-        mult = limitMultiplier(mult, i, j, k, medianDS, iteration);
-        vec3DW(wMult, i, j, k, nrays, ncrossings, mult);
-
+        double mult = exp(-1*cbetSum);//exponentiate the sum
+        //LIMIT THE MULTIPLIER
+        double stepRatio = ds/medianDS;//ratio of path length to median
+        double multPerStep = (1-mult)/stepRatio;//ratio of multiplier to step length
+        double multiplierLim = maxIncr*iteration;//maximum allowable multiplier for iteration
+        multPerStep = (multPerStep > multiplierLim) ? multiplierLim : multPerStep;//abs(mult) greater than multiplier limit, clamp with appropriate sign
+        multPerStep = (multPerStep < -1*multiplierLim) ? -1*multiplierLim : multPerStep;
+        mult = 1 - multPerStep*stepRatio;//restore mult value
+        mult = (mult > ABSLIM) ? ABSLIM : mult;//make sure mult is never above absolute maximum
+        mult = (mult < 1/ABSLIM) ? 1/ABSLIM : mult;
+        vec3DW(wMult, i, j, k, nrays, ncrossings, mult);//store the limited value
       }
-      if(i == 0 && index == 1)
-      {
-        printf("\n");
-      }
-
     }
-   // printf("\n");
-
   }
-    //printf("\n");
-
 }
+/*//main CBET routine
+void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS, int iteration, int* raystore)
+{
+  double cbetConst = getConstant();//main CBET constant
+  int i, j, k, q, p;//loop variables
 
+  for(i = 0; i < nbeams; i++)//for all beams in system
+  {
+    for(j = 0; j < nrays; j++)//for all rays in beam i
+    {
+      for(k = 0; k < ncrossings-1; k++)//for all crossings of ray j
+      {
+        int ix, iz;
+        int id = vec3D(boxes, i, j, k, nrays, ncrossings);//get the spatial location
+        if(!id)//no more crossings, break
+        {
+          break;
+        }
+        ix = (id - 1) % nx;//convert to x and z coordinates
+        iz = (id - ix - 1)/nx;
+        int islast = 0;//store whether this is the last crossing, needed for area step size calculations
+        if(k != ncrossings - 1)
+        {
+          int idnext = vec3D(boxes, i, j, k+1, nrays, ncrossings);
+          if(!idnext)//this is the last crossing of ray j
+          {
+            islast = 1;
+          }
+        }else
+        {
+          islast = 1;
+        }
+        double neOverNc = vec3D(neovernc, i, j, k, nrays, ncrossings);//
+        double cbetSum = 0.0;
+        double ds = vec3D(dkmag, i, j, k, nrays, ncrossings);
+
+        for(q = 0; q < nbeams; q++)//for every other beam
+        {
+          if(q == i)
+          {
+            continue;
+          }
+          int ray_o = raystore[(q*nx + ix)*nz + iz] - 1;//ray determined to be the pump for this cell of beam q
+          if(ray_o == -1)//no valid interactions with beam q
+          {
+            continue;
+          }
+          int raycross = getCrossing(q, ray_o, ix, iz);//get the crossing index of the other ray
+          int islastq = !(vec3D(boxes, q, ray_o, raycross+1, nrays, ncrossings));//check if this is the last crossing for ray_o
+          double interactionMultiplier = getInteractionMultiplier(q, ray_o, raycross, ix, iz, islast);//find ray_o's interaction multiplier
+          double eta = getEta(i, j, k, q, ray_o, raycross, ix, iz);//calculate eta from the interacting rays
+          double couplingMult = getCouplingMultiplier(i, j, k, ix, iz, cbetConst, eta, interactionMultiplier);//get the coupling multiplier
+          couplingMult *= vec3D(dkmag, i,  j, k, nrays, ncrossings);//scale the coupling multiplier by the magnitude of the seed ray's path length
+          double otherIntensity1 = vec3D(i_b, q, ray_o, raycross, nrays, ncrossings);
+          double otherIntensity2 = vec3D(i_b, q, ray_o, raycross + !islastq, nrays, ncrossings);
+          double avgIntensity = (otherIntensity2 + otherIntensity1)/2;//average the intensity of the other ray across the cell
+          cbetSum += couplingMult*avgIntensity;//add to the accumulator
+          vec3DW(spatialLog, i,  j, k, nrays, ncrossings, couplingMult);//logging variable
+        }
+        double mult = exp(-1*cbetSum);//exponentiate the sum
+        mult = limitMultiplier(mult, i, j, k, medianDS, iteration);//limit the multiplier
+        vec3DW(wMult, i, j, k, nrays, ncrossings, mult);//store the limited value
+      }
+    }
+  }
+  getchar();
+}
+*/
 
 void updateIntensities(int iteration, double* convMax, double currMax)
 {
@@ -257,15 +332,12 @@ void updateIntensities(int iteration, double* convMax, double currMax)
   {
     for(int j = 0; j < nrays; j++)
     {
-      //printf("%d: ", j + 1 + 16*i);
       double i0 = vec3D(i_b, i, j, 0, nrays, ncrossings);
       double multAcc = 1.0;
-      //vec3DW(spatialLog, i, j, 0, nrays, ncrossings, i0/1e14);
 
       for(int k = 1; k < ncrossings; k++)
       {
         double mult = vec3D(wMult, i, j, k, nrays, ncrossings);
-
         double new_intensity = limitEnergy(multAcc, i0, currMax, i, j, k, convMax);
         multAcc *= mult;
         vec3DW(i_b, i, j, k, nrays, ncrossings, new_intensity);
@@ -314,7 +386,7 @@ void cbet()
           continue;
         }
         int ind = rand() % numpresent;
-        raystore[(beam*nx + ix)*nz + iz] = vec4D(marked, beam, ix, iz, ind, nx, nz, numstored) - 1;
+        raystore[(beam*nx + ix)*nz + iz] = vec4D(marked, beam, ix, iz, ind, nx, nz, numstored);
         //printf("%d %d %d\n", raystore[(beam*nx + ix)*nz + iz], );
       }
     }

@@ -47,7 +47,7 @@ std::ofstream* output;
   double sigma = 1.7e-4;
   double e0 =8.85418782e-12;
   double me =9.10938291e-31;
-  double pi =3.14159265359;
+  double pi =3.141592653589793;
   double kb= 1.3806485279e-16;   //Boltzmann constant in erg/K
   double kb2= 1.3806485279e-23;   //Boltzmann constant in J/K
   double ec= 1.60217662e-19;

@@ -74,11 +74,8 @@ def compare(filename_other: str,
             if set1[i][j] != set1[i][j] or set2[i][j] != set2[i][j]:
                 break
             denom = set2[i][j]
-            #  if abs(set1[i][j]) < 1e-10:
-            #    set1[i][j] = 1
-            if denom < 1e-10:
-                denom = 1
-            compare = abs(set1[i][j] - set2[i][j])/denom*100
+
+            compare = min(abs(set1[i][j] - set2[i][j])/denom*100, 5)
             #  if compare > 1:
             #    compare = 0.0;
             comparearr[i, j] = compare
@@ -104,12 +101,14 @@ def compare(filename_other: str,
         plt.ylabel("Ray Index")
         plt.xlabel("Crossing Index")
         fig2.show()
+        fig3 = plt.figure()
         plt.contourf(range(sh2[1]), range(sh2[0]), set2, 100)
         plt.colorbar()
         plt.title("MATLAB Intensity (1e14 W/cm^2)")
         plt.ylabel("Ray Index")
         plt.xlabel("Crossing Index")
-        plt.show()
+        fig3.show()
+        input()
 
 
 def analyze_data(filename):
@@ -198,5 +197,5 @@ if __name__ == '__main__':
                 compare(filename_other=ofile, fieldname='new_field', hfile=hfile)
             hfile.close()"""
     #analyze_data('analysis_output.txt')
-    compare(filename_other='/home/matt/Documents/csc/Matlab/matlabcbet.h5', fieldname='new_field', filename1='output/implSim.h5', plot=True)
+    compare(filename_other='/home/matt/Documents/csc/projects/matlab_3b/matlabcbet_3beam.h5', fieldname='new_field', filename1='output/implSim.h5', plot=True)
 
