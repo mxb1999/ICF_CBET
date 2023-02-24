@@ -39,7 +39,7 @@
     __device__ const double offset_cu=0;
     __device__ const double beam_max_z_cu=3.0e-4;
     __device__ const double beam_min_z_cu=-3.0e-4;
-/*
+
     __device__ double c_cu, lambda_cu,  estat_cu,mach_cu,Z_cu,mi_cu,mi_kg_cu,Te_cu,Te_eV_cu,Ti_cu,Ti_eV_cu,iaw_cu,ncrit_cu,freq_cu,omega_cu;
     //spatial information
     __device__ int nx_cu, nz_cu;
@@ -50,6 +50,7 @@
     __device__ int nbeams_cu, nrays_cu, nt_cu, numstored_cu, rays_per_zone_cu, ncrossings_cu;
 
     __device__ double intensity_cu, offset_cu, uray_mult_cu, beam_min_z_cu, beam_max_z_cu, dt_cu, courant_mult_cu;
+    /*
     __device__ double* edep_cu, *crossx_cu, *crossz_cu;
 
     //store device pointers to copy to in an array
@@ -72,8 +73,8 @@
         false,false,false,false,false,false,false,false,false,false,false,false,false,false, false, //c lambda, estat ,mach, Z, mi, mi_kg, Te, Te_eV, Ti, Ti_eV, iaw, ncrit, freq, omega
         false,false,false,false,false,false,false,false,false,false,false,false,false, //xmin xmax zmin zmax dx dz intensity offset uray_mult beam_min_z beam_max_z, dt, courant_mult
         false,false,false,false,false,false,false,false};
-    
-    
+
+
 */
 
 #endif
