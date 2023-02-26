@@ -176,5 +176,5 @@ void trackRays()
 void launchRays()
 {
   //trackRays();
-  fillMarked();
+  //fillMarked();
 }

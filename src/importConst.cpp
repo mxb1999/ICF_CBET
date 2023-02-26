@@ -5,7 +5,7 @@
 
 int* getVarI(std::string target)
 {
-  
+
   std::map<std::string, int*> stringmap;
   stringmap["printUpdates"] = &printUpdates;
   stringmap["printTimings"] = &printTimings;
@@ -17,6 +17,7 @@ int* getVarI(std::string target)
   stringmap["iterate"] = &iterate;
   stringmap["calcCBET"] = &calcCBET;
   stringmap["nx"] = &nx;
+  stringmap["ny"] = &ny;
   stringmap["nz"] = &nz;
   stringmap["maxIterations"] = &maxIter;
   stringmap["threads"] = &threads;

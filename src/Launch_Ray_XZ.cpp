@@ -1,7 +1,7 @@
 #include "Trace_interface.hpp"
 using namespace std;
 
-#define MAG(x,z) sqrt(pow(x,2) + pow(z,2))
+#define MAG(x,z) sqrt(x*x + z*z)
 void track(int raynum, double xinit, double zinit, double kx_init, double kz_init, double urayinit, int beam)
 {
 
@@ -60,7 +60,7 @@ void track(int raynum, double xinit, double zinit, double kx_init, double kz_ini
         znew = m*xnew+b;
       }else//the z boundary was crossed, linearly interpolate x
       {
-        
+
         znew = currZ*dz+zmin+dz*dirZ;
         double m = (z_coor-z_coor_prev)/(x_coor-x_coor_prev);
         double b = 0.5*(z_coor+z_coor_prev-m*(x_coor_prev + x_coor));
@@ -76,9 +76,9 @@ void track(int raynum, double xinit, double zinit, double kx_init, double kz_ini
 
       double xchange = xnew - prevcross[0];
       double zchange = znew - prevcross[1];
-      dkx[beam,raynum,numcrossing] = xchange;
-      dkz[beam,raynum,numcrossing] = zchange;
-      dkmag[beam,raynum,numcrossing] = MAG(xchange, zchange);
+      VEC4D(dk, beam,raynum,numcrossing,0,nrays, ncrossings,3) = xchange;
+      VEC4D(dk, beam,raynum,numcrossing,1,nrays, ncrossings,3) = zchange;
+      VEC3D(dkmag, beam,raynum,numcrossing,nrays, ncrossings) = MAG(xchange, zchange);
       prevcross[0] = xnew;
       prevcross[1] = znew;
       numcrossing++;
@@ -87,8 +87,8 @@ void track(int raynum, double xinit, double zinit, double kx_init, double kz_ini
       deltaZ = 0;
     }
     //printf("(%d, %d)\n",currX, currZ);
-    rayV[0] -= pow(c,2.0)/(2.0*ncrit)*dedendx[currX,currZ]*dt;
-    rayV[1] -= pow(c,2.0)/(2.0*ncrit)*dedendz[currX,currZ]*dt;
+    rayV[0] -= pow(c,2.0)/(2.0*ncrit)*dedendx[currX*nz+currZ]*dt;
+    rayV[1] -= pow(c,2.0)/(2.0*ncrit)*dedendz[currX*nz+currZ]*dt;
     //printf("%e\n",rayV[0]*dt);
     deltaX += rayV[0]*dt;
     deltaZ += rayV[1]*dt;
@@ -123,7 +123,7 @@ void track(int raynum, double xinit, double zinit, double kx_init, double kz_ini
     double zabs = z_coor-zmin;
     currX = (int)((xabs)/dx);
     currZ = (int)((zabs)/dz);
-    
+
   }
 }
 
@@ -269,7 +269,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
 
       for(int j = thisx_m; j <= thisx_p;j++)
       {
-        double currx = x[j]-dx/2;//crossing into 
+        double currx = x[j]-dx/2;//crossing into
         //if the ray is currently between within the desired caustic zone for a crossing
         if((myx > currx && x_init <= (currx)) || (myx < currx && x_init >= (currx)))
         {
@@ -384,7 +384,7 @@ void rayLaunch(double x_init, double z_init, double kx_init, double kz_init, dou
   //delete [] mytime;
   //delete [] nuei;
   //delete [] amplitude_norm;
-  
+
 }
 
 
@@ -401,6 +401,6 @@ void launch_ray_XZ(rayinit initSettings, int raynum)
   double kx_init = initSettings.kxinit;
   double kz_init = initSettings.kzinit;
   int beam = initSettings.beam;
-  double urayinit = initSettings.urayinit;    
+  double urayinit = initSettings.urayinit;
   rayLaunch(xinit,zinit, kx_init, kz_init, urayinit, raynum,beam);
 }

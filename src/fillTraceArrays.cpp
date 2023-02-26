@@ -16,11 +16,11 @@ void fillTraceArrays()
         //z = new double[nz]{0.0}; //nx nz
         cudaMallocManaged(&eden, sizeof(double)*GRID);
         //eden = new double[GRID]; //nx nz
-        cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
+        //cudaMallocManaged(&marked, sizeof(int)*GRID*numstored*nbeams);
         cudaMallocManaged(&present, sizeof(int)*GRID*nbeams);
         cudaMallocManaged(&boxes, sizeof(int)*RAYS*ncrossings*2);
         cudaMemset(boxes, 0,sizeof(int)*RAYS*ncrossings*2);
-        cudaMemset(marked, 0,sizeof(int)*GRID*numstored*nbeams);
+        //cudaMemset(marked, 0,sizeof(int)*GRID*nbeams);
         cudaMemset(present, 0,sizeof(int)*GRID*nbeams);
         //cudaMallocManaged(&edep, sizeof(double)*RAYS* (nx+2) * (nz+2));
         //cudaMallocManaged(&ints, sizeof(int)*CROSS*numstored);
@@ -34,7 +34,7 @@ void fillTraceArrays()
         x = new double[nx];
         z = new double[nz];
         eden = new double[GRID];
-        marked = new int[GRID*numstored*nbeams]{0};
+        //marked = new int[GRID*nbeams]{0};
         present = new int[GRID*nbeams]{0};
        // boxes = new int[CROSS*2]{0};
         wpe = new double[GRID];

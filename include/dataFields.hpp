@@ -9,7 +9,7 @@
     #include <omp.h>
     #include <chrono>
     #include <cmath>
-    #define GRID nx*nz
+    #define GRID nx*nz*ny
     #define RAYS nbeams*nrays
     #define CROSS nbeams*nrays*ncrossings
     extern GConfig* deviceConfiguration;
@@ -145,7 +145,7 @@
         //LinkedList* crossings;
         double intensity;
     };
-    
+
     //Values needed throughout simulation
     extern double maxDev;//stores maximum change in a given iteration, determines convergence
     //extern int beam;//stores which beam is currently being tracked
@@ -183,8 +183,7 @@
     extern double* machnum; //nx nz
     extern int* boxes; //nbeams nrays ncrossings 2
     extern double* u_flow; //nx nz
-    extern double* dkx; //nbeams nrays 2
-    extern double* dkz; //nbeams nrays 2
+    extern double* dk; //nbeams nrays ncrossings 3
     extern double* dkmag; //nbeams nrays 2
 
     //Launch_Ray_XZ specific arrays (all have a length of nt)
@@ -251,6 +250,7 @@
     //spatial information
     extern int nx;
     extern int nz;
+    extern int ny;
     extern double xmin;
     extern double xmax;
     extern double zmin;
@@ -282,9 +282,9 @@
     extern double* neovernc;
     extern int* interactions_ML;
     //Fundamental Constants
-    extern  double sigma; 
+    extern  double sigma;
     extern  double e0;
-    extern  double me; 
+    extern  double me;
     extern  double pi;
     extern  double kb;  //Boltzmann constant in erg/K
     extern  double kb2;   //Boltzmann constant in J/K

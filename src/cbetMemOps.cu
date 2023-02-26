@@ -9,8 +9,7 @@ void cbetOptimize()
         cudaMemAdvise(machnum, sizeof(double)*GRID, cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(u_flow, sizeof(double)*GRID, cudaMemAdviseSetReadMostly, 0);
 
-        cudaMemAdvise(dkx, sizeof(double)*CROSS, cudaMemAdviseSetReadMostly, 0);
-        cudaMemAdvise(dkz, sizeof(double)*CROSS, cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(dk, sizeof(double)*CROSS*3, cudaMemAdviseSetReadMostly, 0);
         cudaMemAdvise(dkmag, sizeof(double)*CROSS, cudaMemAdviseSetReadMostly, 0);
 
         cudaMemAdvise(i_b_new, sizeof(double)*CROSS, cudaMemAdviseSetPreferredLocation, 0);
@@ -20,8 +19,7 @@ void cbetOptimize()
         cudaMemPrefetchAsync(machnum, sizeof(double)*GRID, 0);
         cudaMemPrefetchAsync(u_flow, sizeof(double)*GRID, 0);
 
-        cudaMemPrefetchAsync(dkx, sizeof(double)*CROSS, 0);
-        cudaMemPrefetchAsync(dkz, sizeof(double)*CROSS, 0);
+        cudaMemPrefetchAsync(dk, sizeof(double)*CROSS*3, 0);
         cudaMemPrefetchAsync(dkmag, sizeof(double)*CROSS, 0);
 
         cudaMemPrefetchAsync(i_b_new, sizeof(double)*CROSS, 0);
@@ -32,15 +30,14 @@ void cbetOptimize()
 
 void freeCBETArrs()
 {
-  
+
   if(cudaCalc)
   {
     cudaError_t err = cudaFree(i_b_new);
     err = cudaFree(i_b);
     err = cudaFree(machnum);
     err = cudaFree(u_flow);
-    err = cudaFree(dkx);
-    err = cudaFree(dkz);
+    err = cudaFree(dk);
     err = cudaFree(dkmag);
   }else
   {
@@ -48,8 +45,7 @@ void freeCBETArrs()
     delete [] i_b;
     delete [] machnum;
     delete [] u_flow;
-    delete [] dkx;
-    delete [] dkz;
+    delete [] dk;
     delete [] dkmag;
   }
 

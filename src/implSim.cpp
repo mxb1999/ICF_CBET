@@ -36,7 +36,7 @@ void benchmark()
     for(int t = 0; t < trials;t++)
     {
       launchRays();
-      cbet();
+      //cbet();
       freeTraceArrs();
       freeCBETArrs();
     }
@@ -49,7 +49,7 @@ void benchmark()
     for(int t = 0; t < trials;t++)
     {
       launchRays();
-      cbet();
+      //cbet();
       freeTraceArrs();
       freeCBETArrs();
     }
@@ -62,12 +62,12 @@ void benchmark()
     for(int t = 0; t < trials;t++)
     {
       launchRays();
-      cbet();
+      //cbet();
       freeTraceArrs();
       freeCBETArrs();
     }
   }
-  
+
   output->close();
 }
 void importFromH5(hid_t file, char* set_name, void** target, size_t unitSize, hid_t h5DataType)
@@ -108,12 +108,14 @@ void importFromH5()
   //import ray info (areas, trajectories, and vectors) from MATLAB results
   free(boxes);
   free(areas);
-  char* path = "/home/matt/Documents/csc/projects/matlab_3b/matlabcbet_3beam.h5";
+  boxes = new int[CROSS*3];
+  int* tempBoxes;
+  char* path = "matlabcbet_3beam.h5";
   hid_t file;
   herr_t status;
   file = H5Fopen(path, H5F_ACC_RDONLY, H5P_DEFAULT);
   double* tempArea;
-  importFromH5(file, "trajectories", (void**)&boxes, sizeof(int), H5T_NATIVE_INT);
+  importFromH5(file, "trajectories", (void**)&tempBoxes, sizeof(int), H5T_NATIVE_INT);
   importFromH5(file, "areaRatios", (void**)&tempArea, sizeof(double), H5T_NATIVE_DOUBLE);
   importFromH5(file, "rayVectors", (void**)&ray_k, sizeof(double), H5T_NATIVE_DOUBLE);
   importFromH5(file, "ds", (void**)&dkmag, sizeof(double), H5T_NATIVE_DOUBLE);
@@ -123,26 +125,46 @@ void importFromH5()
   {
     //printf("%d\n", boxes[i]);
   }
-  dkx = new double[CROSS]{0.0};
-  dkz = new double[CROSS]{0.0};
+  printf("REEE %d\n", CROSS*3);
+  dk = new double[CROSS*3]{0.0};
   areas = new double[CROSS]{0.0};
+  fflush(stdout);
+  marked = new int[GRID*nbeams]{0};
   for(int i = 0; i < nbeams; i++)
   {
     for(int j = 0; j < nrays; j++)
     {
       for(int k = 0; k < ncrossings; k++)
       {
+        int ix, iz;
+        int id = vec3D(tempBoxes, i, j, k, nrays, ncrossings);//get the spatial location
+        ix = (id - 1) % nx;//convert to x and z coordinates
+        iz = (id - ix - 1)/nx;
+        if(id == 0) {
+          break;
+        }
+        if(ix == 80 && iz==172 && i == 1) {
+          printf("%d\n", j);
+        }
+        VEC4D(boxes, i, j, k, 0, nrays, ncrossings, 3) = ix+1;
+        VEC4D(boxes, i, j, k, 1, nrays, ncrossings, 3) = iz+1;
+        VEC4D(boxes, i, j, k, 2, nrays, ncrossings, 3) = 1;
         double* value = vec4DP(ray_k, i, j, k, 0, nrays, 378, 3);
         double area = vec3D(tempArea, i, j, k, nrays, 378);
         double kx = value[0], kz = value[1];
-        vec3DW(dkx, i, j, k, nrays, ncrossings, kx);
-        vec3DW(dkz, i, j, k, nrays, ncrossings, kz);
+        VEC4D(dk, i, j, k, 0, nrays, ncrossings, 3) = kx;
+        VEC4D(dk, i, j, k, 1, nrays, ncrossings, 3) = 0;
+        VEC4D(dk, i, j, k, 2, nrays, ncrossings, 3) = kz;
+        if(VEC4D(marked, i, ix, iz, 0, nx, nz, ny) == 0) {
+          VEC4D(marked, i, ix, iz, 0, nx, nz, ny) = j+1;
+        }
         //printf("%e %e\n", kx, kz);
         vec3DW(areas, i, j, k, nrays, ncrossings, area);
       }
     }
   }
   getchar();
+  free(tempBoxes);
   free(tempArea);
   H5Fclose(file);
 }
@@ -156,9 +178,9 @@ int main(int argc, char const *argv[]) {
     4. Update/write HDF5 file with desired output arrays
     5. Plot arrays (performed by matplotting.py)
   */
- 
+
   threads = 12;
-  
+
   initialize();
   auto start1 = chrono::high_resolution_clock::now();
   if(argc > 4)
@@ -216,7 +238,12 @@ int main(int argc, char const *argv[]) {
   optimize = 0;
   if(calcCBET)
   {
-    cbet();
+    initArrays();
+    wMult = new double[CROSS]{0.0};
+    for(int i = 0; i < CROSS; i++) {
+      wMult[i] = 1.0;
+    }
+    cbet(wMult, i_b, eden, areas, machnum, boxes, dk, median(dkmag, CROSS), marked, 1e-4);
   }
 
   auto stop3 = chrono::high_resolution_clock::now();

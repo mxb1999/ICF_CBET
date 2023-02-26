@@ -355,7 +355,7 @@ void cbet()
   initArrays();
   if(cudaCalc)
   {
-    launchCBETKernel();
+    //launchCBETKernel();
     return;
   }
   int s = 0;

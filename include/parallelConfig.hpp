@@ -5,6 +5,20 @@
     #define OPENCL 2
     #include <string>
     #include <map>
+    typedef struct {
+        int nx, ny, nz, nrays, ncrossings, iteration,\
+            *boxes, *marked;
+        double pi, c, me, kb, e, omega, cs, Ti_eV, Z, Te_eV, iaw, medianDS, current_max,\
+            *wMult, *i_b, *eden, *areas, *machnum, *convergence, *kvec;
+    } CBETMultiplierFields;
+
+    CBETMultiplierFields* new_cbet_args();
+    void copy_cbet_args();
+
+    #define VEC2D(arr, i, j, s2) (arr)[(i)*(s2) + (j)]
+    #define VEC3D(arr, i, j, k, s2, s3) (arr)[((i)*(s2) + (j))*(s3) + (k)]
+    #define VEC4D(arr, i, j, k, l, s2, s3, s4) (arr)[(((i)*(s2) + (j))*(s3) + (k))*(s4) + (l)]
+
     class DeviceDataEntry//store and modify pointers for device-host comms
     {
         private:

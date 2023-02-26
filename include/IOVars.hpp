@@ -1,4 +1,4 @@
- 
+
  GConfig* deviceConfiguration;
 
   //execution option variables
@@ -7,7 +7,7 @@
   double lambda,estat,mach,Z,mi,mi_kg,Te,Te_eV,Ti,Ti_eV,iaw,ncrit,freq,omega;
   int switchvar;
   //spatial information
-  int nx, nz;
+  int nx, nz, ny;
   double xmin, xmax, zmin, zmax, dx, dz;
 
   double maxIncr, converge;

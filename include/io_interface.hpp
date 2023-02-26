@@ -2,8 +2,9 @@
 
 #ifndef IODEF
 #define IODEF
-  #include <hdf5.h>
-  #include "H5Cpp.h"
+
+  #include <hdf5/serial/hdf5.h>
+  #include <hdf5/serial/H5Cpp.h>
   #include <vector>
   #include <iostream>
   #include <queue>

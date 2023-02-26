@@ -44,8 +44,7 @@ CBETArrs* new_cbetArrs()
     return NULL;
   }
   curr->eden_cu = eden;
-  curr->dkx_cu = dkx;  
-  curr->dkz_cu = dkz;
+  curr->dk_cu = dk;
   curr->dkmag_cu = dkmag;
   curr->uflow_cu = u_flow;
   curr->i_b_cu = i_b;
@@ -62,6 +61,7 @@ CBETArrs* new_cbetArrs()
 void initArrays()
 {
 
+    printf("SIZE %d %d %d\n", nbeams, nrays, ncrossings);
   //Allocate global memory for relevant arrays
   if(cudaCalc)
   {
@@ -69,8 +69,7 @@ void initArrays()
     cudaError_t err = cudaMallocManaged(&i_b, sizeof(double)*CROSS);
     cudaMallocManaged(&machnum, sizeof(double)*GRID);
     cudaMallocManaged(&u_flow, sizeof(double)*GRID);
-    cudaMallocManaged(&dkx, sizeof(double)*CROSS);
-    cudaMallocManaged(&dkz, sizeof(double)*CROSS);
+    cudaMallocManaged(&dk, sizeof(double)*CROSS*3);
     cudaMallocManaged(&dkmag, sizeof(double)*CROSS);
   }else
   {
@@ -82,7 +81,7 @@ void initArrays()
     //dkz = new double[CROSS]{0.0};
     //dkmag = new double[CROSS]{0.0};
   }
-  
+
   double* phase_x = new double[nrays];//phase of ray
   double* pow_x = new double[nrays];//power delivery of ray
   double*  initIntensities = new double[nrays];
@@ -103,7 +102,7 @@ void initArrays()
     initIntensities[i] = actualIntensity*exp(-2*pow(abs(offsets[i]/2e-4), 4.0));//interp(phase_x, pow_x, beam_min_z+dbRay*i, nrays)*intensity;
   }
   //Initialize CBET array values
-  
+
   for(int m = 0; m < nbeams; m++)
   {
 
@@ -111,6 +110,7 @@ void initArrays()
     for(int j = 0; j < nrays; j++)
     {
         double thisinit = initIntensities[j];
+        printf("%e\n", thisinit);
         vec3DW(i_b, m,j,0,nrays,ncrossings,thisinit);
         vec3DW(i_b_new, m,j,0,nrays,ncrossings,thisinit);
         for(int q = 0; q < ncrossings-1; q++)

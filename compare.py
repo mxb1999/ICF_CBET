@@ -197,5 +197,5 @@ if __name__ == '__main__':
                 compare(filename_other=ofile, fieldname='new_field', hfile=hfile)
             hfile.close()"""
     #analyze_data('analysis_output.txt')
-    compare(filename_other='/home/matt/Documents/csc/projects/matlab_3b/matlabcbet_3beam.h5', fieldname='new_field', filename1='output/implSim.h5', plot=True)
+    compare(filename_other='matlabcbet_3beam.h5', fieldname='new_field', filename1='output/implSim.h5', plot=True)
 

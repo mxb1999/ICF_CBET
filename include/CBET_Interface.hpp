@@ -38,8 +38,7 @@
   struct CBETArrs
   {
     double* eden_cu;
-    double* dkx_cu;
-    double* dkz_cu;
+    double* dk_cu;
     double* dkmag_cu;
     double* uflow_cu;
     double* i_b_cu;
