@@ -23,7 +23,6 @@ void fillMarked()//marked temp indexed by rays
         vec4DW(marked, beam,cx,cz, val, nx,nz, numstored, raynum+1);
         vec3DI(present, beam, cx,cz, nx,nz,1);
       }
-
     }
   }
 }
