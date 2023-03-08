@@ -285,24 +285,26 @@ void updateH5()
   double* WPlot1 = new double[GRID]{0.0};
   double* WPlot2 = new double[GRID]{0.0};
   double* WPlotTotal = new double[CROSS]{0.0};
+  int i;
+  for(i = 0; i < nbeams; i++){
 
-  int i = 0;
-  for(int j = 0; j < nrays;j++)
-  {
-    for(int m = 0; m < ncrossings;m++)
+    for(int j = 0; j < nrays;j++)
     {
-      int boxx = vec3D(boxes,i,j,m,nrays,ncrossings) % nz;
-      int boxz = vec3D(boxes,i,j,m,nrays,ncrossings) / nz;
-      if(!boxx && !boxz)
+      for(int m = 0; m < ncrossings;m++)
       {
-        break;
+        int boxx = vec3D(boxes,i,j,m,nrays,ncrossings) % nz;
+        int boxz = vec3D(boxes,i,j,m,nrays,ncrossings) / nz;
+        if(!boxx && !boxz)
+        {
+          break;
+        }
+        boxz--;
+        double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
+
+          WPlot1[boxx*nz+boxz] += vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+
+
       }
-      boxz--;
-      double rayNRG = vec3D(i_b_new,i,j,m,nrays,ncrossings);
-      
-        WPlot1[boxx*nz+boxz] = vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
-      
-      
     }
   }
   i = 1;
@@ -318,7 +320,7 @@ void updateH5()
       }
       boxz--;
       double rayNRG = vec3D(i_b,i,j,m,nrays,ncrossings);
-      WPlot2[boxx*nz+boxz] = vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
+      WPlot2[boxx*nz+boxz] += vec3D(i_b,i,j,m,nrays,ncrossings);//+ vec3D();//vec3D(i_b_new,i,j,m,nrays,ncrossings);
     }
   }
   
@@ -331,9 +333,10 @@ void updateH5()
       }
     }
     int check = 0;
-  printf("check %d\n", ++check);
+  printf("REEEE %d\n", ++check);
+
   writeArr(i_b, 0, store, "/new_field", 2, new int[2]{nbeams*nrays,ncrossings});//energy deposited, CBET multiplier for beam 2
-  writeArr(WPlot1, 0, store, "/beam1_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
+  writeArr(WPlot1, 0, store, "/total_intensity", 2, new int[2]{nx,nz});//beam 1 intensity post-CBET
   writeArr(WPlot2, 0, store, "/beam2_intensity", 2, new int[2]{nx,nz});//beam 2 intensity post-CBET
   writeArr(edepplot, 0, store, "/edep",2, new int[2]{nx,nz});
   writeArr(x, 0, store, "/x", 1, new int[1]{nx});//x coordinates

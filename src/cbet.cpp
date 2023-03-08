@@ -241,6 +241,7 @@ void getCBETGain(double* wMultOld, double* conv, double* logger, double medianDS
           double otherIntensity2 = vec3D(i_b, q, ray_o, raycross + !islastq, nrays, ncrossings);
           double avgIntensity = (otherIntensity2 + otherIntensity1)/2;//average the intensity of the other ray across the cell
           cbetSum += couplingMult*avgIntensity;//add to the accumulator
+          printf("%e %e %e %e %e\n", neOverNc,iaw, eta, param4, ds);
         }
         double mult = exp(-1*cbetSum);//exponentiate the sum
         //LIMIT THE MULTIPLIER
@@ -355,7 +356,7 @@ void cbet()
   initArrays();
   if(cudaCalc)
   {
-    launchCBETKernel();
+    //launchCBETKernel();
     return;
   }
   int s = 0;

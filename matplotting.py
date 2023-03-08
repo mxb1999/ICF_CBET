@@ -7,7 +7,7 @@ import tkinter as tk
 from tkinter import *
 
 
-implSim = h5py.File('output/implSim.hdf', 'r')#Opens the output hdf file in read mode
+implSim = h5py.File('output/implSim.h5', 'r')#Opens the output hdf file in read mode
 #matComp = h5py.File('../russMatlab.hdf', 'r')#Opens the output hdf file in read mode
 
 #

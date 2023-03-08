@@ -1,5 +1,4 @@
 #include "implSim.hpp"
-#include <Python.h>
 #include <fstream>
 using namespace std;
 
@@ -183,18 +182,6 @@ int main(int argc, char const *argv[]) {
     freq = c/lambda;		// frequency of light, in Hz
     */
   }
-  else if(argc > 2)
-  {
-     pyPlot = argv[1][0] - 48;
-     std::string str(argv[2]);
-     threads = std::stoi(str);
-  }else if(argc > 1)
-  {
-    pyPlot = argv[1][0] - 48;
-  }else
-  {
-    pyPlot = 0;
-  }
   if(!cudaCalc)
   {
     //printf("Threads: %d\n", threads);
@@ -236,16 +223,6 @@ int main(int argc, char const *argv[]) {
   }
   printf("check %d\n", 4);
   fflush(stdout);
-  if(pyPlot)
-  {
-    char filename[] = "matplotting.py";
-    FILE* fp;
-    Py_Initialize();
-    cout << "Hello" << endl;
-    fp = _Py_fopen(filename, "r");
-    PyRun_SimpleFile(fp, filename);
-    Py_Finalize();
-  }
   printf("check %d\n", 5);
   fflush(stdout);
   return 0;

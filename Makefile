@@ -13,7 +13,7 @@ CU_ODIR=Bin/cuda
 
 LIBS = -lpython3.8   -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart #Library Dependecies
 INT_INCLUDE = -Iinclude
-EXT_INCLUDE = -I/usr/include/python3.8 -I/usr/include/cuda -I/usr/local/hdf5/include
+EXT_INCLUDE = -I/usr/local/cuda/include -I/usr/local/hdf5/include
 
 REFS = $(INT_INCLUDE) $(EXT_INCLUDE) $(LIBS)
 H5FLAGS = -g -Wall  -fopenmp -fPIC#Compiler flags for h5c++
@@ -42,7 +42,7 @@ IOOBJ = $(patsubst %,$(ODIR)/%,$(_IOOBJ))
 _LIBOBJ =  customMath.o #Core IO module source files
 LIBOBJ = $(patsubst %,$(ODIR)/%,$(_LIBOBJ))
 
-_CUOBJ = trackray.o cudahelper.o cbet.o cbetMemOps.o traceMemOps.o 
+_CUOBJ = trackray.o cudahelper.o  cbetMemOps.o traceMemOps.o
 CUOBJ = $(patsubst %,$(CU_ODIR)/%,$(_CUOBJ))
 
 $(ODIR)/%.o: $(SRCDIR)/%.cpp  #$(CBET_DIR)/%.cpp $(FIELD_DIR)/%.cpp $(INIT_DIR)/%.cpp $(TRACE_DIR)/%.cpp#Compile instructions for individual C++ source files
