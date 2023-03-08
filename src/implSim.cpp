@@ -107,7 +107,7 @@ void importFromH5()
   //import ray info (areas, trajectories, and vectors) from MATLAB results
   free(boxes);
   free(areas);
-  char* path = "/home/matt/Documents/csc/projects/matlab_3b/matlabcbet_3beam.h5";
+  char* path = "/home/mburns13/Documents/proj/ICF_CBET/matlabcbet_3beam.h5";
   hid_t file;
   herr_t status;
   file = H5Fopen(path, H5F_ACC_RDONLY, H5P_DEFAULT);
