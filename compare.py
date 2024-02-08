@@ -90,7 +90,7 @@ def compare(filename_other: str,
         fig1 = plt.figure()
         plt.contourf(range(shp[1]), range(shp[0]), comparearr, 100)
         plt.colorbar()
-        plt.title("Relative Intensity Difference |C++ - MATLAB|/MATLAB")
+        plt.title("Relative Intensity Difference % |C++ - MATLAB|/MATLAB")
         plt.ylabel("Ray Index")
         plt.xlabel("Crossing Index")
         fig1.show()
@@ -107,8 +107,8 @@ def compare(filename_other: str,
         plt.title("MATLAB Intensity (1e14 W/cm^2)")
         plt.ylabel("Ray Index")
         plt.xlabel("Crossing Index")
-        fig3.show()
-        input()
+        plt.show()
+        # input()
 
 
 def analyze_data(filename):

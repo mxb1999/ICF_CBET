@@ -11,9 +11,9 @@ LDIR=lib
 OPDIR=output
 CU_ODIR=Bin/cuda
 
-LIBS = -lpython3.8   -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart #Library Dependecies
+LIBS = -lpython3.10  -L/usr/local/cuda/lib64/ -lcudadevrt -lcudart #Library Dependecies
 INT_INCLUDE = -Iinclude
-EXT_INCLUDE = -I/usr/local/cuda/include -I/usr/local/hdf5/include
+EXT_INCLUDE = -I/usr/local/cuda/include -I/usr/include/hdf5/serial/
 
 REFS = $(INT_INCLUDE) $(EXT_INCLUDE) $(LIBS)
 H5FLAGS = -g -Wall  -fopenmp -fPIC#Compiler flags for h5c++
